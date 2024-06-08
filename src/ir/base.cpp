@@ -94,6 +94,12 @@ bool Label::equals(const Node& _other) const {
     return getName() == ((const Label&)_other).getName();
 }
 
+NodePtr Label::clone(Cloner &_cloner) const {
+    const LabelPtr pCopy = NEW_CLONE(this, _cloner, m_strName);
+    pCopy->setLoc(this->getLoc());
+    return pCopy;
+}
+
 bool Statement::less(const Node& _other) const {
     if (!Node::equals(_other))
         return Node::less(_other);
@@ -108,6 +114,22 @@ bool Statement::equals(const Node& _other) const {
         return false;
     const Statement& other = (const Statement&)_other;
     return getKind() == other.getKind() && _equals(getLabel(), other.getLabel());
+}
+
+NodePtr Statement::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, _cloner.get(getLabel()));
+}
+
+NodePtr Block::clone(Cloner &_cloner) const {
+    const auto pCopy = NEW_CLONE(this, _cloner, _cloner.get(this->getLabel()));
+    pCopy->appendClones(*this, _cloner);
+    return pCopy;
+}
+
+NodePtr ParallelBlock::clone(Cloner &_cloner) const {
+    const auto pCopy = NEW_CLONE(this, _cloner, _cloner.get(this->getLabel()));
+    pCopy->appendClones(*this, _cloner);
+    return pCopy;
 }
 
 bool NamedValue::less(const Node& _other) const {
@@ -128,6 +150,12 @@ bool NamedValue::equals(const Node& _other) const {
     return getKind() == other.getKind()
         && getName() == other.getName()
         && _equals(getType(), other.getType());
+}
+
+NodePtr NamedValue::clone(Cloner &_cloner) const {
+    const auto pCopy = NEW_CLONE(this, _cloner, m_strName, _cloner.get(m_pType));
+    pCopy->setLoc(this->getLoc());
+    return pCopy;
 }
 
 void Param::updateUsed(const NodePtr &_pRoot) {
@@ -163,5 +191,8 @@ void Param::updateUsed(const NodePtr &_pRoot) {
     updater.run(_pRoot);
 }
 
+NodePtr Param::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, getName(), _cloner.get(getType()), m_bOutput, m_bUsed);
+}
 
 }

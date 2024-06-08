@@ -170,10 +170,10 @@ bool Expression::_matches(const ExpressionPtr& _pLeft, const ExpressionPtr& _pRi
         return (bool)_pLeft == (bool)_pRight;
 
     const auto pNewMatches = !_pMatches ? std::make_shared<Matches>() : _pMatches;
-    Matches oldMatches(*pNewMatches);
+    const auto oldMatches = std::make_shared<Matches>(*pNewMatches);
 
     if (!_pLeft->matches(_pRight, pNewMatches)) {
-        pNewMatches->swap(oldMatches);
+        pNewMatches->swap(*oldMatches);
         return false;
     }
 
@@ -347,7 +347,7 @@ bool Wild::equals(const Node& _other) const {
 }
 
 NodePtr Wild::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, Wild(m_strName)), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_strName), _cloner);
 }
 
 bool Literal::less(const Node& _other) const {
@@ -401,7 +401,7 @@ bool Literal::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Literal::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, Literal(*this)), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, *this), _cloner);
 }
 
 bool VariableReference::less(const Node& _other) const {
@@ -429,7 +429,7 @@ bool VariableReference::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr VariableReference::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, VariableReference(m_strName, _cloner.get(m_pTarget, true))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_strName, _cloner.get<NamedValue>(m_pTarget, true)), _cloner);
 }
 
 bool PredicateReference::less(const Node& _other) const {
@@ -461,7 +461,7 @@ bool PredicateReference::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr PredicateReference::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, PredicateReference(m_strName, _cloner.get(m_pTarget, true), _cloner.get(getType())));
+    return NEW_CLONE(this, _cloner, m_strName, _cloner.get<Predicate>(m_pTarget, true), _cloner.get<Type>(getType()));
 }
 
 bool Unary::less(const Node& _other) const {
@@ -495,7 +495,7 @@ bool Unary::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Unary::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, Unary(m_operator, _cloner.get(m_pExpression), m_overflow)), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_operator, _cloner.get<Expression>(m_pExpression), m_overflow), _cloner);
 }
 
 bool Binary::less(const Node& _other) const {
@@ -551,7 +551,7 @@ bool Binary::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Binary::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, Binary(m_operator, _cloner.get(m_pLeft), _cloner.get(m_pRight), m_overflow)), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_operator, _cloner.get<Expression>(m_pLeft), _cloner.get<Expression>(m_pRight), m_overflow), _cloner);
 }
 
 bool Ternary::less(const Node& _other) const {
@@ -593,7 +593,7 @@ bool Ternary::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Ternary::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, Ternary(_cloner.get(m_pIf), _cloner.get(m_pThen), _cloner.get(m_pElse))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, _cloner.get<Expression>(m_pIf), _cloner.get<Expression>(m_pThen), _cloner.get<Expression>(m_pElse)), _cloner);
 }
 
 bool TypeExpr::less(const Node& _other) const {
@@ -623,7 +623,7 @@ bool TypeExpr::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr TypeExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, TypeExpr(_cloner.get(m_pContents))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, _cloner.get<Type>(m_pContents)), _cloner);
 }
 
 bool CastExpr::less(const Node& _other) const {
@@ -657,7 +657,7 @@ bool CastExpr::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr CastExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, CastExpr(_cloner.get(m_pExpression), _cloner.get(m_pToType))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, _cloner.get<Expression>(m_pExpression), _cloner.get<TypeExpr>(m_pToType)), _cloner);
 }
 
 bool Formula::less(const Node& _other) const {
@@ -699,7 +699,7 @@ bool Formula::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Formula::clone(Cloner &_cloner) const {
-    FormulaPtr pFormula = NEW_CLONE(this, _cloner, Formula(m_quantifier, _cloner.get(m_pSubformula)));
+    const auto pFormula = NEW_CLONE(this, _cloner, m_quantifier, _cloner.get<Expression>(m_pSubformula));
     pFormula->getBoundVariables().appendClones(getBoundVariables(), _cloner);
     return _cloneTypeTo(pFormula, _cloner);
 }
@@ -766,7 +766,7 @@ bool ArrayPartExpr::isRestrict() const {
 }
 
 NodePtr ArrayPartExpr::clone(Cloner &_cloner) const {
-    ArrayPartExprPtr pExpr = NEW_CLONE(this, _cloner, ArrayPartExpr(_cloner.get(getObject())));
+    const auto pExpr = NEW_CLONE(this, _cloner, _cloner.get<Expression>(getObject()));
     pExpr->getIndices().appendClones(getIndices(), _cloner);
     return _cloneTypeTo(pExpr, _cloner);
 }
@@ -796,7 +796,7 @@ bool FieldExpr::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr FieldExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, FieldExpr(m_strField, _cloner.get(getObject()))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_strField, _cloner.get<Expression>(getObject())), _cloner);
 }
 
 bool MapElementExpr::less(const Node& _other) const {
@@ -824,7 +824,7 @@ bool MapElementExpr::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr MapElementExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, MapElementExpr(_cloner.get(getIndex()), _cloner.get(getObject()))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, _cloner.get<Expression>(getIndex()), _cloner.get<Expression>(getObject())), _cloner);
 }
 
 bool ListElementExpr::less(const Node& _other) const {
@@ -852,7 +852,7 @@ bool ListElementExpr::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr ListElementExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, ListElementExpr(_cloner.get(getIndex()), _cloner.get(getObject()))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, _cloner.get<Expression>(getIndex()), _cloner.get<Expression>(getObject())), _cloner);
 }
 
 bool Replacement::less(const Node& _other) const {
@@ -880,7 +880,7 @@ bool Replacement::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Replacement::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, Replacement(_cloner.get(getNewValues()), _cloner.get(getObject()))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, _cloner.get<Constructor>(getNewValues()), _cloner.get<Expression>(getObject())), _cloner);
 }
 
 bool AccessorBase::less(const Node& _other) const {
@@ -919,11 +919,11 @@ bool AccessorBase::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr RecognizerExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, RecognizerExpr(m_pConstructor, _cloner.get(getObject()))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_pConstructor, _cloner.get<Expression>(getObject())), _cloner);
 }
 
 NodePtr AccessorExpr::clone(Cloner &_cloner) const {
-    return _cloneTypeTo(NEW_CLONE(this, _cloner, AccessorExpr(m_pConstructor, _cloner.get(getObject()))), _cloner);
+    return _cloneTypeTo(NEW_CLONE(this, _cloner, m_pConstructor, _cloner.get<Expression>(getObject())), _cloner);
 }
 
 bool FunctionCall::less(const Node& _other) const {
@@ -959,7 +959,7 @@ bool FunctionCall::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr FunctionCall::clone(Cloner &_cloner) const {
-    FunctionCallPtr pExpr = NEW_CLONE(this, _cloner, FunctionCall(_cloner.get(getPredicate())));
+    const auto pExpr = NEW_CLONE(this, _cloner, _cloner.get<Expression>(getPredicate()));
     pExpr->getArgs().appendClones(getArgs(), _cloner);
     return _cloneTypeTo(pExpr, _cloner);
 }
@@ -997,7 +997,7 @@ bool Binder::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Binder::clone(Cloner &_cloner) const {
-    BinderPtr pExpr = NEW_CLONE(this, _cloner, Binder(_cloner.get(getPredicate())));
+    const auto pExpr = NEW_CLONE(this, _cloner, _cloner.get<Expression>(getPredicate()));
     pExpr->getArgs().appendClones(getArgs(), _cloner);
     return _cloneTypeTo(pExpr, _cloner);
 }
@@ -1035,7 +1035,7 @@ bool FormulaCall::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr FormulaCall::clone(Cloner &_cloner) const {
-    FormulaCallPtr pExpr = NEW_CLONE(this, _cloner, FormulaCall(_cloner.get(getTarget(), true)));
+    const auto pExpr = NEW_CLONE(this, _cloner, _cloner.get<FormulaDeclaration>(getTarget(), true));
     pExpr->getArgs().appendClones(getArgs(), _cloner);
     return _cloneTypeTo(pExpr, _cloner);
 }
@@ -1061,7 +1061,7 @@ bool Branch::equals(const Node& _other) const {
 }
 
 NodePtr Branch::clone(Cloner &_cloner) const {
-    BranchPtr pExpr = NEW_CLONE(this, _cloner, Branch(_cloner.get(getLabel()), _cloner.get(getPreCondition()), _cloner.get(getPostCondition())));
+    const auto pExpr = NEW_CLONE(this, _cloner, _cloner.get<Label>(getLabel()), _cloner.get<Formula>(getPreCondition()), _cloner.get<Formula>(getPostCondition()));
     pExpr->appendClones(*this, _cloner);
     return pExpr;
 }
@@ -1120,8 +1120,8 @@ bool Lambda::matches(const ExpressionConstPtr& _other) const {
 }
 
 NodePtr Lambda::clone(Cloner &_cloner) const {
-    LambdaPtr pExpr = NEW_CLONE(this, _cloner, Lambda());
-    m_pred.cloneTo(pExpr->m_pred, _cloner);
+    const auto pExpr = NEW_CLONE(this, _cloner);
+    m_pred->cloneTo(pExpr->m_pred, _cloner);//TODO:dyp: fix
     return _cloneTypeTo(pExpr, _cloner);
 }
 
@@ -1142,7 +1142,7 @@ bool ElementDefinition::equals(const Node& _other) const {
 }
 
 NodePtr ElementDefinition::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, ElementDefinition(_cloner.get(getIndex()), _cloner.get(getValue())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Expression>(getIndex()), _cloner.get<Expression>(getValue()));
 }
 
 bool StructFieldDefinition::less(const Node& _other) const {
@@ -1163,11 +1163,11 @@ bool StructFieldDefinition::equals(const Node& _other) const {
 }
 
 NodePtr StructFieldDefinition::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, StructFieldDefinition(_cloner.get(getValue()), _cloner.get(getField()), getName()));
+    return NEW_CLONE(this, _cloner, _cloner.get<Expression>(getValue()), _cloner.get<NamedValue>(getField()), getName());
 }
 
 NodePtr StructConstructor::clone(Cloner &_cloner) const {
-    StructConstructorPtr pCopy = NEW_CLONE(this, _cloner, StructConstructor());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->appendClones(*this, _cloner);
     return _cloneTypeTo(pCopy, _cloner);
 }
@@ -1193,31 +1193,31 @@ bool UnionConstructor::equals(const Node& _other) const {
 }
 
 NodePtr UnionConstructor::clone(Cloner &_cloner) const {
-    UnionConstructorPtr pCopy = NEW_CLONE(this, _cloner, UnionConstructor(getName(), _cloner.get(getPrototype(), true)));
+    const auto pCopy = NEW_CLONE(this, _cloner, getName(), _cloner.get<UnionConstructorDeclaration>(getPrototype(), true));
     pCopy->getDeclarations().appendClones(getDeclarations(), _cloner);
     return _cloneTypeTo(pCopy, _cloner);
 }
 
 NodePtr ArrayConstructor::clone(Cloner &_cloner) const {
-    ArrayConstructorPtr pCopy = NEW_CLONE(this, _cloner, ArrayConstructor());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->appendClones(*this, _cloner);
     return _cloneTypeTo(pCopy, _cloner);
 }
 
 NodePtr MapConstructor::clone(Cloner &_cloner) const {
-    MapConstructorPtr pCopy = NEW_CLONE(this, _cloner, MapConstructor());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->appendClones(*this, _cloner);
     return _cloneTypeTo(pCopy, _cloner);
 }
 
 NodePtr SetConstructor::clone(Cloner &_cloner) const {
-    SetConstructorPtr pCopy = NEW_CLONE(this, _cloner, SetConstructor());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->appendClones(*this, _cloner);
     return _cloneTypeTo(pCopy, _cloner);
 }
 
 NodePtr ListConstructor::clone(Cloner &_cloner) const {
-    ListConstructorPtr pCopy = NEW_CLONE(this, _cloner, ListConstructor());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->appendClones(*this, _cloner);
     return _cloneTypeTo(pCopy, _cloner);
 }
@@ -1239,7 +1239,7 @@ bool ArrayPartDefinition::equals(const Node& _other) const {
 }
 
 NodePtr ArrayPartDefinition::clone(Cloner &_cloner) const {
-    ArrayPartDefinitionPtr pCopy = NEW_CLONE(this, _cloner, ArrayPartDefinition(_cloner.get(getExpression())));
+    const auto pCopy = NEW_CLONE(this, _cloner, _cloner.get<Expression>(getExpression()));
     pCopy->getConditions().appendClones(getConditions(), _cloner);
     return pCopy;
 }
@@ -1261,7 +1261,7 @@ bool ArrayIteration::equals(const Node& _other) const {
 }
 
 NodePtr ArrayIteration::clone(Cloner &_cloner) const {
-    ArrayIterationPtr pCopy = NEW_CLONE(this, _cloner, ArrayIteration(_cloner.get(getDefault())));
+    const auto pCopy = NEW_CLONE(this, _cloner, _cloner.get<Expression>(getDefault()));
     pCopy->appendClones(*this, _cloner);
     pCopy->getIterators().appendClones(getIterators(), _cloner);
     return _cloneTypeTo(pCopy, _cloner);

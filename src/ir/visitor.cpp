@@ -29,7 +29,7 @@ bool Visitor::walkUpFromNode(const ir::NodePtr &_pNode) {
 bool Visitor::traverseNode(const NodePtr &_pNode) {
     switch (_pNode->getNodeKind()) {
         case Node::COLLECTION: {
-            TRAVERSE_COL(Node, TopLevel, (Collection<Node> &) _pNode);
+            TRAVERSE_COL(Node, TopLevel, *_pNode->as<Collection<Node>>());
             return true;
         }
         case Node::TYPE:
@@ -435,7 +435,7 @@ bool Visitor::traverseFormulaCall(const std::shared_ptr<FormulaCall> &_pExpr) {
 
 bool Visitor::traverseLambda(const std::shared_ptr<Lambda> &_pExpr) {
     ENTER(Lambda, _pExpr);
-    auto predicate = std::make_shared<AnonymousPredicate>(_pExpr->getPredicate());
+    auto predicate = std::make_shared<AnonymousPredicate>(*_pExpr->getPredicate());
     if (!_traverseAnonymousPredicate(predicate))
         return false;
     EXIT();

@@ -116,7 +116,7 @@ ir::TypePtr Guess::_matchEqualizableUpperBound(const tc::FreshTypePtr& _pType, c
         pSup->rewrite(_pType, pFresh);
         pInf->rewrite(_pType, pFresh);
 
-        const auto pRelation = std::make_shared<tc::Relation>(tc::Formula(tc::Formula::SUBTYPE, pInf, pSup));
+        const auto pRelation = std::make_shared<tc::Relation>(pInf, pSup, false);
 
         auto &relations = _context()->pTypes->relations();
 

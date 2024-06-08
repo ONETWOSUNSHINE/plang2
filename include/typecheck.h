@@ -111,7 +111,7 @@ private:
 
 using TupleTypePtr = std::shared_ptr<class TupleType>;
 
-class Formula : std::enable_shared_from_this<Formula> {
+class Formula : public std::enable_shared_from_this<Formula> {
 public:
     enum {
         EQUALS          = 0x01,
@@ -250,7 +250,7 @@ struct Context : public std::enable_shared_from_this<Context> {
     Context(const FormulasPtr &_pFormulas, const ContextPtr &_pParent);
     virtual ~Context() = default;
 
-    ir::TypePtr lookup(const tc::Formula &_f, const tc::Formula &_cond);
+    ir::TypePtr lookup(const tc::FormulaPtr &_f, const tc::FormulaPtr &_cond);
     bool rewrite(const ir::TypePtr &_pOld, const ir::TypePtr &_pNew, bool _bRewriteFlags = true);
     bool implies(Formula &_f);
     bool implies(Formulas &_fs);

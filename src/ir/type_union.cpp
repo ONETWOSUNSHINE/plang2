@@ -216,15 +216,15 @@ int UnionType::getMonotonicity(const Type &_var) const {
 }
 
 NodePtr UnionType::clone(Cloner &_cloner) const {
-    UnionTypePtr pCopy = NEW_CLONE(this, _cloner, UnionType());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->getConstructors().appendClones(getConstructors(), _cloner);
     return pCopy;
 }
 
 NodePtr OptionalType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, OptionalType(_cloner.get(getBaseType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getBaseType()));
 }
 
 NodePtr SeqType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, SeqType(_cloner.get(getBaseType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getBaseType()));
 }

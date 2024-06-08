@@ -205,13 +205,6 @@ public:
     VariableDeclaration(const VariablePtr &_pVar = NULL, const ExpressionPtr &_pValue = NULL, const LabelPtr &_pLabel = NULL) :
         Statement(_pLabel), m_pVar(_pVar), m_pValue(_pValue) {}
 
-    /// Initialize with variable name.
-    /// \param _bLocal Specifies if it is a local variable.
-    /// \param _strName Variable name.
-    VariableDeclaration(bool _bLocal, const std::wstring &_strName) : m_pVar(NULL), m_pValue(NULL) {
-        setVariable(std::make_shared<Variable>(_bLocal, _strName));
-    }
-
     /// Get statement kind.
     /// \returns #VariableDeclaration.
     virtual int getKind() const { return VARIABLE_DECLARATION; }

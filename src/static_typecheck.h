@@ -60,8 +60,8 @@ private:
     static bool isContains(const ExpressionPtr &expr, const TypePtr &type);
     static bool isTypeEqual(const TypePtr &type1, const TypePtr &type2);
     static TypePtr getTypeJoin(const TypePtr &type1, const TypePtr &type2);
-    static void typeError(std::string msg, bool expr = false);
-    static void typeWarning(const std::wstring msg, bool expr = false);
+    static void typeError(const std::string& msg, bool expr = false);
+    static void typeWarning(const std::wstring& msg, bool expr = false);
     static bool isFresh(const TypePtr &type);
     static void setType(Node &node, const TypePtr type);
     static TypePtr getGeneralType(const TypePtr &type);

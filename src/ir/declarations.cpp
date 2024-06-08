@@ -22,20 +22,20 @@ bool Predicate::equals(const Node& _other) const {
 }
 
 NodePtr Predicate::clone(Cloner &_cloner) const {
-    const PredicatePtr pCopy = NEW_CLONE(this, _cloner, Predicate(getName(), isBuiltin()));
-    cloneTo(*pCopy, _cloner);
+    const auto pCopy = NEW_CLONE(this, _cloner, getName(), isBuiltin());
+    cloneTo(pCopy, _cloner);
     pCopy->setLoc(this->getLoc());
     return pCopy;
 }
 
 NodePtr Message::clone(Cloner &_cloner) const {
-    MessagePtr pCopy = NEW_CLONE(this, _cloner, Message(getProcessingType(), getName()));
+    const auto pCopy = NEW_CLONE(this, _cloner, getProcessingType(), getName());
     pCopy->getParams().appendClones(getParams(), _cloner);
     return pCopy;
 }
 
 NodePtr Process::clone(Cloner &_cloner) const {
-    const ProcessPtr pCopy = NEW_CLONE(this, _cloner, Process(getName(), _cloner.get(getBlock())));
+    const auto pCopy = NEW_CLONE(this, _cloner, getName(), _cloner.get(getBlock()));
     pCopy->getInParams().appendClones(getInParams(), _cloner);
     pCopy->getOutParams().appendClones(getOutParams(), _cloner);
     pCopy->setLoc(this->getLoc());
@@ -43,7 +43,7 @@ NodePtr Process::clone(Cloner &_cloner) const {
 }
 
 NodePtr Variable::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, Variable(m_kind == LOCAL, getName(), _cloner.get(getType()), isMutable(), _cloner.get(getDeclaration(), true)));
+    return NEW_CLONE(this, _cloner, m_kind == LOCAL, getName(), _cloner.get(getType()), isMutable(), _cloner.get(getDeclaration(), true));
 }
 
 bool VariableDeclaration::less(const Node& _other) const {
@@ -63,13 +63,13 @@ bool VariableDeclaration::equals(const Node& _other) const {
 }
 
 NodePtr VariableDeclaration::clone(Cloner &_cloner) const {
-    const VariableDeclarationPtr pCopy = NEW_CLONE(this, _cloner, VariableDeclaration(_cloner.get(getVariable()), _cloner.get(getValue()), _cloner.get(getLabel())));
+    const auto pCopy = NEW_CLONE(this, _cloner, _cloner.get(getVariable()), _cloner.get(getValue()), _cloner.get(getLabel()));
     pCopy->setLoc(this->getLoc());
     return pCopy;
 }
 
 NodePtr VariableDeclarationGroup::clone(Cloner &_cloner) const {
-    const auto pCopy = NEW_CLONE(this, _cloner, VariableDeclarationGroup());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->appendClones(*this, _cloner);
     return pCopy;
 }
@@ -97,8 +97,8 @@ bool FormulaDeclaration::equals(const Node& _other) const {
 }
 
 NodePtr FormulaDeclaration::clone(Cloner &_cloner) const {
-    const FormulaDeclarationPtr pCopy = NEW_CLONE(this, _cloner, FormulaDeclaration(getName(), _cloner.get(getResultType()),
-        _cloner.get(getFormula()), _cloner.get(getMeasure()), _cloner.get(getLabel())));
+    const auto pCopy = NEW_CLONE(this, _cloner, getName(), _cloner.get<Type>(getResultType()),
+        _cloner.get<Expression>(getFormula()), _cloner.get<Expression>(getMeasure()), _cloner.get<Label>(getLabel()));
     pCopy->getParams().appendClones(getParams(), _cloner);
     pCopy->setLoc(this->getLoc());
     return pCopy;
@@ -122,7 +122,7 @@ bool LemmaDeclaration::equals(const Node& _other) const {
 }
 
 NodePtr LemmaDeclaration::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, LemmaDeclaration(_cloner.get(getProposition()), _cloner.get(getLabel())));
+    return NEW_CLONE(this, _cloner, _cloner.get(getProposition()), _cloner.get(getLabel()));
 }
 
 bool DeclarationGroup::less(const Node& _other) const {
@@ -155,7 +155,7 @@ bool DeclarationGroup::equals(const Node& _other) const {
 }
 
 NodePtr Class::clone(Cloner &_cloner) const {
-    ClassPtr pCopy = NEW_CLONE(this, _cloner, Class(getName(), _cloner.get(getAncestor(), true)));
+    const auto pCopy = NEW_CLONE(this, _cloner, getName(), _cloner.get<Class>(getAncestor(), true));
     cloneTo(*pCopy, _cloner);
     return pCopy;
 }
@@ -185,7 +185,7 @@ bool Module::equals(const Node& _other) const {
 }
 
 NodePtr Module::clone(Cloner &_cloner) const {
-    const ModulePtr pCopy = NEW_CLONE(this, _cloner, Module(getName()));
+    const auto pCopy = NEW_CLONE(this, _cloner, getName());
     pCopy->getParams().appendClones(getParams(), _cloner);
     cloneTo(*pCopy, _cloner);
     pCopy->getImports() = getImports();

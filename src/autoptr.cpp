@@ -32,9 +32,6 @@ void Cloner::_mergeHandles(int _nHandle, int _nOther) {
     }
 }
 
-void* operator new(size_t _cSize, Cloner& _cloner, const void* _pOriginal) {
-    Cloner::Cache::iterator iObj = _cloner.m_cache.find(
-        _cloner._getHandle(_pOriginal));
-    assert(iObj != _cloner.m_cache.end());
-    return (void*)iObj->second.get();
+void* operator new(size_t _cSize, Cloner& _cloner, void* _pOriginal) {
+    return _pOriginal;
 }

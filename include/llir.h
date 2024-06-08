@@ -19,7 +19,7 @@ inline void freeList(std::list<T *> & _list) {
     _list.clear();
 }
 
-class Base : std::enable_shared_from_this<Base> {
+class Base : public std::enable_shared_from_this<Base> {
 protected:
     // Override Counted's deleted copy constructor to allow copying
     // preserving Counted's internal fields.

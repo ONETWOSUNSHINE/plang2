@@ -1109,8 +1109,8 @@ bool PrettyPrinterSyntax::needsParen() {
             break;
 
         case Expression::LAMBDA:
-            if (!pNode->as<Lambda>()->getPredicate().getPostCondition() &&
-                    !pNode->as<Lambda>()->getPredicate().getMeasure())
+            if (!pNode->as<Lambda>()->getPredicate()->getPostCondition() &&
+                    !pNode->as<Lambda>()->getPredicate()->getMeasure())
                 return false;
             break;
 

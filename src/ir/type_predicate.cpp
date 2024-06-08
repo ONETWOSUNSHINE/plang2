@@ -307,7 +307,7 @@ int PredicateType::getMonotonicity(const Type &_var) const {
 }
 
 NodePtr PredicateType::clone(Cloner &_cloner) const {
-    PredicateTypePtr pCopy = NEW_CLONE(this, _cloner, PredicateType(_cloner.get(getPreCondition()), _cloner.get(getPostCondition())));
+    const auto pCopy = NEW_CLONE(this, _cloner, _cloner.get<Formula>(getPreCondition()), _cloner.get<Formula>(getPostCondition()));
     pCopy->getInParams().appendClones(getInParams(), _cloner);
     pCopy->getOutParams().appendClones(getOutParams(), _cloner);
     return pCopy;

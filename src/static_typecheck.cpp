@@ -95,9 +95,9 @@ bool StaticTypeChecker::checkArrayPartExpr(ArrayPartExpr &arrayPartExpr) {
         printTypecheckInfo(L"Static type checking failed", L"", PRINT_RED, 2);
         return false;
     }
-    for (const auto& i: arrayPartExpr.getIndices())
-        typeError("type of dimension",isSubtype(i->getType(), std::make_shared<Type>(Type::INT, Number::GENERIC)));
     if (arrayPartExpr.getObject()->getType()->getKind() == Type::ARRAY) {
+        for (const auto& i: arrayPartExpr.getIndices())
+            typeError("type of dimension",isSubtype(i->getType(), std::make_shared<Type>(Type::INT, Number::GENERIC)));
         const auto arrayType = arrayPartExpr.getObject()->getType()->as<ArrayType>();
         Collection<Type> dimensionTypes;
         arrayType->getDimensions(dimensionTypes);
@@ -499,7 +499,7 @@ bool StaticTypeChecker::checkIf(If &conditional) {
 
 bool StaticTypeChecker::checkLambda(Lambda &lambda) {
     printTypecheckInfo(L"Start check for: ", str(lambda), PRINT_BLUE, 1);
-    setType(lambda, lambda.getPredicate().getType());
+    setType(lambda, lambda.getPredicate()->getType());
     return true;
 }
 
@@ -913,16 +913,16 @@ bool StaticTypeChecker::isContains(const ExpressionPtr &expr, const TypePtr &typ
     return isSubtype(expr->getType(), type);
 }
 
-void StaticTypeChecker::typeError(std::string msg, bool expr) {
+void StaticTypeChecker::typeError(const std::string& msg, bool expr) {
     if (!expr) {
         printTypecheckInfo(L"Type Error ", L"", PRINT_RED, 2);
         throw std::runtime_error(msg);
     }
 }
 
-void StaticTypeChecker::typeWarning(const std::wstring msg, bool expr) {
+void StaticTypeChecker::typeWarning(const std::wstring& msg, bool expr) {
     if (!expr)
-        printTypecheckInfo(L"Type Error ", msg, PRINT_RED, 2);
+        printTypecheckInfo(L"Type Warning ", msg, PRINT_RED, 2);
 }
 
 std::wstring StaticTypeChecker::str(const NodePtr &node) {

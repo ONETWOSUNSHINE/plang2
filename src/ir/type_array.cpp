@@ -24,11 +24,11 @@ TypePtr ArrayType::getMeet(const TypePtr &_other) {
     if (meet.first || meet.second || _other->getKind() == FRESH)
         return meet.first;
 
-    const ArrayType& other = (const ArrayType&)_other;
+    const auto other = _other->as<ArrayType>();
 
     TypePtr
-        pBaseMeet = getBaseType()->getMeet(other.getBaseType()),
-        pDimensionJoin = getDimensionType()->getJoin(other.getDimensionType());
+        pBaseMeet = getBaseType()->getMeet(other->getBaseType()),
+        pDimensionJoin = getDimensionType()->getJoin(other->getDimensionType());
 
     if (!pBaseMeet || !pDimensionJoin)
         return NULL;
@@ -41,11 +41,11 @@ TypePtr ArrayType::getJoin(const TypePtr &_other) {
     if (join.first || join.second || _other->getKind() == FRESH)
         return join.first;
 
-    const ArrayType& other = (const ArrayType&)_other;
+    const auto other = _other->as<ArrayType>();
 
     TypePtr
-        pBaseJoin = getBaseType()->getJoin(other.getBaseType()),
-        pDimensionMeet = getDimensionType()->getMeet(other.getDimensionType());
+        pBaseJoin = getBaseType()->getJoin(other->getBaseType()),
+        pDimensionMeet = getDimensionType()->getMeet(other->getDimensionType());
 
     if (!pBaseJoin || !pDimensionMeet)
         return NULL;
@@ -88,5 +88,5 @@ int ArrayType::getMonotonicity(const Type &_var) const {
 }
 
 NodePtr ArrayType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, ArrayType(_cloner.get(getBaseType()), _cloner.get(getDimensionType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getBaseType()), _cloner.get<Type>(getDimensionType()));
 }

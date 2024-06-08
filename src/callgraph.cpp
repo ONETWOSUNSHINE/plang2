@@ -22,7 +22,7 @@ void ir::printCallGraphNode(const CallGraphNode *_pNode, const CallGraph &_graph
     bool bSameName = false;
     for (const auto &i: _graph.getNodes())
         if (i.getPredicate()->getKind() == Statement::PREDICATE_DECLARATION &&
-            (pPred->getName() == ((Predicate *)i.getPredicate())->getName() &&
+            (pPred->getName() == i.getPredicate()->as<Predicate>()->getName() &&
             !pPred->getInParams().equals(i.getPredicate()->getInParams())))
         {
             bSameName = true;

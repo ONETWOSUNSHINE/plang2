@@ -189,10 +189,10 @@ ConjunctionPtr Conjunction::_negate(const ConjunctPtr& _pConjunct) {
 
     _divide(_pConjunct->as<FormulaConjunct>()->getExpression(), parts, Binary::BOOL_AND);
     if (parts.size() > 1) {
-        Conjunction conj;
+        const auto conj = std::make_shared<Conjunction>();
 
         for (auto i = parts.begin(); i != parts.end(); ++i) {
-            conj.disjunct(_negate(std::make_shared<FormulaConjunct>(*i)));
+            conj->disjunct(_negate(std::make_shared<FormulaConjunct>(*i)));
         }
 
         result->append(conj);
@@ -204,13 +204,13 @@ ConjunctionPtr Conjunction::_negate(const ConjunctPtr& _pConjunct) {
 }
 
 void Conjunction::negate() {
-    Conjunction container;
+    const auto container = std::make_shared<Conjunction>();
 
     for (std::set<ConjunctPtr>::iterator i = m_conjuncts.begin(); i != m_conjuncts.end(); ++i) {
-        container.disjunct(_negate(*i));
+        container->disjunct(_negate(*i));
     }
 
-    m_conjuncts.swap(container.getConjuncts());
+    m_conjuncts.swap(container->getConjuncts());
 }
 
 void Conjunction::disjunct(const ConjunctionPtr& _pOther) {
@@ -271,12 +271,12 @@ void Conjunction::_normalize(const ConjunctPtr& _pConjunct, const ConjunctionPtr
 
     _divide(_pConjunct->as<FormulaConjunct>()->getExpression(), parts, Binary::BOOL_OR);
     if (parts.size() > 1) {
-        Conjunction conj;
+        const auto conj = std::make_shared<Conjunction>();
 
         for (auto i = parts.begin(); i != parts.end(); ++i) {
             const auto result = std::make_shared<Conjunction>();
             _normalize(std::make_shared<FormulaConjunct>(*i), result);
-            conj.disjunct(result);
+            conj->disjunct(result);
         }
 
         _result->append(conj);

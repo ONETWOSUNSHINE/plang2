@@ -1151,8 +1151,10 @@ public:
     /// Default constructor.
     /// \param _pNewValues Expression containing new values.
     /// \param _pObject Expression of compound type.
-    Replacement(const ConstructorPtr &_pNewValues = NULL, const ExpressionPtr &_pObject = NULL) :
+    Replacement(const ConstructorPtr &_pNewValues, const ExpressionPtr &_pObject) :
         Component(_pObject), m_pConstructor(_pNewValues->as<Expression>()) {}
+
+    Replacement() {}
 
     /// Get component kind.
     /// \return #Replacement.
@@ -1336,6 +1338,9 @@ class Branches : public Collection<Branch> {
 
 class PredicateType;
 
+using AnonymousPredicatePtr = std::shared_ptr<class AnonymousPredicate>;
+using AnonymousPredicateConstPtr = std::shared_ptr<const class AnonymousPredicate>;
+
 /// Predicate declaration base (also used by Lambda).
 class AnonymousPredicate : public Statement {
 public:
@@ -1411,14 +1416,14 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    void cloneTo(AnonymousPredicate &_pred, Cloner &_cloner) const {
-        _pred.setLabel(getLabel());
-        _pred.getInParams().appendClones(getInParams(), _cloner);
-        _pred.getOutParams().appendClones(getOutParams(), _cloner);
-        _pred.setPreCondition(_cloner.get(getPreCondition()));
-        _pred.setPostCondition(_cloner.get(getPostCondition()));
-        _pred.setBlock(_cloner.get(getBlock()));
-        _pred.setMeasure(_cloner.get(getMeasure()));
+    void cloneTo(const AnonymousPredicatePtr &_pred, Cloner &_cloner) const {
+        _pred->setLabel(getLabel());
+        _pred->getInParams().appendClones(getInParams(), _cloner);
+        _pred->getOutParams().appendClones(getOutParams(), _cloner);
+        _pred->setPreCondition(_cloner.get(getPreCondition()));
+        _pred->setPostCondition(_cloner.get(getPostCondition()));
+        _pred->setBlock(_cloner.get(getBlock()));
+        _pred->setMeasure(_cloner.get(getMeasure()));
     }
 
 private:
@@ -1430,8 +1435,6 @@ private:
     ExpressionPtr m_pMeasure;
 };
 
-using AnonymousPredicatePtr = std::shared_ptr<class AnonymousPredicate>;
-
 /// Anonymous predicate.
 class Lambda : public Expression {
 public:
@@ -1442,8 +1445,8 @@ public:
     /// \return #Lambda.
     virtual int getKind() const { return LAMBDA; }
 
-    AnonymousPredicate &getPredicate() { return m_pred; }
-    const AnonymousPredicate &getPredicate() const { return m_pred; }
+    const AnonymousPredicatePtr &getPredicate() { return m_pred; }
+    const AnonymousPredicateConstPtr getPredicate() const { return m_pred; }
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
@@ -1453,7 +1456,7 @@ public:
     virtual NodePtr clone(Cloner &_cloner) const;
 
 private:
-    AnonymousPredicate m_pred;
+    AnonymousPredicatePtr m_pred = std::make_shared<AnonymousPredicate>();
 };
 
 /// Indexed element.

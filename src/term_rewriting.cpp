@@ -76,11 +76,11 @@ public:
 };
 
 StatementPtr modifyStatement(const StatementPtr& _pStatement) {
-    st::StmtVertex top(_pStatement);
-    top.expand();
-    top.modifyForVerification();
-    top.simplify();
-    StatementPtr pStatment = top.mergeForVerification();
+    const auto top = std::make_shared<st::StmtVertex>(_pStatement);
+    top->expand();
+    top->modifyForVerification();
+    top->simplify();
+    const auto pStatment = top->mergeForVerification();
     ExcludeCasts().traverseNode(pStatment);
     return pStatment;
 }

@@ -251,7 +251,7 @@ bool Collector::visitFunctionCall(const FunctionCallPtr &_call) {
 bool Collector::visitLambda(const LambdaPtr &_lambda) {
     if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkLambda(*_lambda))
         return true;
-    _lambda->setType(_lambda->getPredicate().getType());
+    _lambda->setType(_lambda->getPredicate()->getType());
     return true;
 }
 
@@ -663,8 +663,6 @@ bool Collector::visitBinary(const BinaryPtr &_binary) {
 bool Collector::visitTernary(const TernaryPtr &_ternary) {
     if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkTernary(*_ternary))
         return true;
-    m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getThen()->getType(), _ternary->getType()));
-    m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getElse()->getType(), _ternary->getType()));
     _ternary->setType(createFresh(_ternary->getType()));
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getIf()->getType(), std::make_shared<Type>(Type::BOOL)));
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getThen()->getType(), _ternary->getType()));

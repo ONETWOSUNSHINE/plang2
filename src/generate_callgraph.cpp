@@ -14,7 +14,7 @@ public:
     // m_path is a path in the tree to m_pExpression.
     // m_predicates is a collection of predicates, references to which are contained in m_pExpression.
     CallGraphTriple(const ExpressionPtr &_pExpression, const std::list<Visitor::Loc> &_path,
-            const std::list<AnonymousPredicate *> &_predicates) :
+            const std::list<AnonymousPredicatePtr> &_predicates) :
             m_pExpression(_pExpression), m_path(_path), m_predicates(_predicates) {}
 
     const NodePtr getParent() const {
@@ -36,15 +36,15 @@ public:
         return *m_path.rbegin();
     }
 
-    const std::list<AnonymousPredicate *> &getPredicates() const { return m_predicates; }
-    std::list<AnonymousPredicate *> &getPredicates() { return m_predicates; }
+    const std::list<AnonymousPredicatePtr> &getPredicates() const { return m_predicates; }
+    std::list<AnonymousPredicatePtr> &getPredicates() { return m_predicates; }
 
     bool operator<(const CallGraphTriple &_other) const { return m_pExpression < _other.m_pExpression; }
 
 private:
     ExpressionPtr m_pExpression;
     std::list<Visitor::Loc> m_path;
-    std::list<AnonymousPredicate *> m_predicates;
+    std::list<AnonymousPredicatePtr> m_predicates;
 };
 
 // Class that adds PredicateDeclarations as nodes to the graph and pushes all PredicateReferences into queue.
@@ -55,15 +55,16 @@ public:
 
     int handlePredicateDecl(NodePtr &_node) override {
         // Don't add predicate declarations, only predicate defintions (to avoid copies).
-        if (_node->as<Predicate>()->getBlock())
-            m_pGraph->addNode(&(Predicate &)_node);
+        const auto pred = _node->as<Predicate>();
+        if (pred->getBlock())
+            m_pGraph->addNode(pred);
         return 0;
     }
 
     bool visitPredicateReference(const PredicateReferencePtr &_node) override {
-        std::list<AnonymousPredicate *> predicates;
+        std::list<AnonymousPredicatePtr> predicates;
         assert(_node->getTarget());
-        predicates.push_back(&*_node->getTarget());
+        predicates.push_back(_node->getTarget());
         const CallGraphTriple triple(_node, m_path, predicates);
         m_pQueue->push(triple);
         return true;
@@ -71,9 +72,9 @@ public:
 
     bool visitLambda(const LambdaPtr &_node) override {
         ++m_cLambdaNumber;
-        m_pGraph->addNode(&_node->getPredicate(), m_cLambdaNumber);
-        std::list<AnonymousPredicate *> predicates;
-        predicates.push_back(&_node->getPredicate());
+        m_pGraph->addNode(_node->getPredicate(), m_cLambdaNumber);
+        std::list<AnonymousPredicatePtr> predicates;
+        predicates.push_back(_node->getPredicate());
         const CallGraphTriple triple(NULL, m_path, predicates);
         m_pQueue->push(triple);
         return true;
@@ -88,8 +89,8 @@ private:
 // Class that finds and pushes into queue all VariableReferences which refers to variables from collected set.
 class CollectVarRef : public Visitor {
 public:
-    CollectVarRef(std::queue<CallGraphTriple> *_pQueue, std::map<NamedValuePtr, std::list<AnonymousPredicate *> > &
-            _trackingVars, std::map<FunctionCallPtr, std::list<AnonymousPredicate *> > &_trackingFunctionCalls) :
+    CollectVarRef(std::queue<CallGraphTriple> *_pQueue, std::map<NamedValuePtr, std::list<AnonymousPredicatePtr> > &
+            _trackingVars, std::map<FunctionCallPtr, std::list<AnonymousPredicatePtr> > &_trackingFunctionCalls) :
                 m_pQueue(_pQueue), m_trackingVars(std::move(_trackingVars)),
                 m_trackingFunctionCalls(std::move(_trackingFunctionCalls)) {}
 
@@ -111,8 +112,8 @@ public:
 
 private:
     std::queue<CallGraphTriple> *m_pQueue;
-    const std::map<NamedValuePtr, std::list<AnonymousPredicate *> > m_trackingVars;
-    const std::map<FunctionCallPtr, std::list<AnonymousPredicate *> > m_trackingFunctionCalls;
+    const std::map<NamedValuePtr, std::list<AnonymousPredicatePtr> > m_trackingVars;
+    const std::map<FunctionCallPtr, std::list<AnonymousPredicatePtr> > m_trackingFunctionCalls;
 };
 
 struct CGQueue {
@@ -146,9 +147,9 @@ struct CGQueue {
     std::queue<CallGraphTriple> *m_pQueue;
     std::list<CallGraphTriple> m_argsList;
     std::list<CallGraphTriple> m_calleeList;
-    std::map<NamedValuePtr, std::list<AnonymousPredicate *> > m_trackingVars;
-    std::map<NamedValuePtr, std::list<AnonymousPredicate *> > m_trackingResultingVars;
-    std::map<FunctionCallPtr, std::list<AnonymousPredicate *> > m_trackingFunctionCalls;
+    std::map<NamedValuePtr, std::list<AnonymousPredicatePtr> > m_trackingVars;
+    std::map<NamedValuePtr, std::list<AnonymousPredicatePtr> > m_trackingResultingVars;
+    std::map<FunctionCallPtr, std::list<AnonymousPredicatePtr> > m_trackingFunctionCalls;
     std::multimap<NamedValuePtr, ExpressionPtr> m_resultsMap;
     CallGraph *m_pGraph;
 };
@@ -165,7 +166,7 @@ void CGQueue::addCallToCallGraph(const CallGraphTriple &_triple) {
     // In the above example one _triple will be PredicateReference to baz2 inside definition of lambda and
     // another _triple will be PredicateReference to baz2 inside foo2 body. Passes _triple.getPath() to find
     // the callee which is either lambda or predicate.
-    AnonymousPredicate* pCallingPredicate;
+    AnonymousPredicatePtr pCallingPredicate;
     for (std::list<Visitor::Loc>::const_reverse_iterator i = _triple.getPath().rbegin();
          i != _triple.getPath().rend(); ++i)
         if (i->role == R_PredicateBody) {
@@ -173,12 +174,12 @@ void CGQueue::addCallToCallGraph(const CallGraphTriple &_triple) {
                     ::next(i)->pNode->as<Expression>()->getKind() == Expression::LAMBDA)
             {
                 const auto pExpr = ::next(i)->pNode->as<Expression>();
-                pCallingPredicate = &pExpr->as<Lambda>()->getPredicate();
+                pCallingPredicate = pExpr->as<Lambda>()->getPredicate();
             } else if (::next(i)->pNode->getNodeKind() == Node::STATEMENT &&
                     ::next(i)->pNode->as<Statement>()->getKind() == Statement::PREDICATE_DECLARATION)
             {
                 const auto pStmnt = ::next(i)->pNode->as<Statement>();
-                pCallingPredicate = &*pStmnt->as<Predicate>();
+                pCallingPredicate = pStmnt->as<Predicate>();
             }
             break;
         }

@@ -11,11 +11,6 @@
 
 using namespace tc;
 
-Relation::Relation(const ir::TypePtr &_pLhs, const ir::TypePtr &_pRhs, bool _bStrict, bool _bUsed, const RelationPtrPairs &_inferedFrom) :
-    Formula(_bStrict ? SUBTYPE_STRICT : SUBTYPE, _pLhs, _pRhs), bUsed(_bUsed), inferedFrom(_inferedFrom)
-{
-}
-
 static const TypeNode g_emptyNode(NULL);
 
 const Relations &Lattice::lowers(const ir::TypePtr &_pType) {

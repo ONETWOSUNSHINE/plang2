@@ -597,8 +597,8 @@ bool CollectPreConditions::visitCall(const CallPtr &_node) {
                 FormulaPtr pPre, pPost;
 
                 if(pCallArg->getKind() == Expression::LAMBDA) {
-                    pPre = pCallArg->as<Lambda>()->getPredicate().getPreCondition();
-                    pPost = pCallArg->as<Lambda>()->getPredicate().getPostCondition();
+                    pPre = pCallArg->as<Lambda>()->getPredicate()->getPreCondition();
+                    pPost = pCallArg->as<Lambda>()->getPredicate()->getPostCondition();
                 }
 
                 if(pCallArg->getKind() == Expression::TYPE && 

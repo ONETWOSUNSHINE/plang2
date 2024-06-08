@@ -341,17 +341,20 @@ public:
         return m_nodes.end();
     }
 
-    NodePtr clone(Cloner& _cloner) const override {
-        auto pCopy = std::make_shared<Collection>();
-        pCopy->appendClones(*this, _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     std::vector<_NodePtr> m_nodes;
 
     template<class, class> friend class Collection;
 };
+
+template<class _Node, class _Base>
+NodePtr Collection<_Node, _Base>::clone(Cloner &_cloner) const {
+    const auto pCopy = NEW_CLONE(this, _cloner);
+    pCopy->appendClones(*this, _cloner);
+    return pCopy;
+}
 
 class Type;
 
@@ -488,12 +491,9 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
     virtual bool less(const Type &_other) const;
-    virtual bool equals(const Type& _other) const;
 
     // Perform deep copy.
-    virtual NodePtr clone(Cloner&) const {
-        return std::make_shared<Type>(*this);
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
     virtual bool hasFresh() const;
     virtual bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true) { return false; }
@@ -595,15 +595,7 @@ public:
         return equals(_other);
     }
 
-    virtual NodePtr clone(Cloner&) const {
-        auto pCopy = std::make_shared<NamedValue>(*this);
-        if (m_pType) {
-            pCopy->m_pType = std::make_shared<Type>(*m_pType);
-        }
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-
-    }
+    NodePtr clone(Cloner &_cloner) const;
 
 private:
     std::wstring m_strName;
@@ -652,13 +644,7 @@ public:
     void setUsed(bool _bValue) { m_bUsed = _bValue; }
     static void updateUsed(const NodePtr &_pRoot);
 
-    virtual NodePtr clone(Cloner&) const {
-        auto pCopy = std::make_shared<Param>(*this);
-        if (m_pLinkedParam) {
-            pCopy->m_pLinkedParam = std::make_shared<Param>(*m_pLinkedParam);
-        }
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     ParamPtr m_pLinkedParam;
@@ -674,8 +660,8 @@ private:
     public:                                                                         \
         _Name() {}                                                                  \
         _Name(Collection<_Item> &_collection) : Collection<_Item>(_collection) {}   \
-        virtual NodePtr clone(Cloner& _cloner) const {                              \
-            auto pCopy = std::make_shared<_Name>();                                 \
+        NodePtr clone(Cloner &_cloner) const override {                              \
+            const auto pCopy = NEW_CLONE(this, _cloner);                  \
             pCopy->appendClones(*this, _cloner);                                    \
             return pCopy;                                                           \
         }                                                                           \
@@ -710,11 +696,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner&) const {
-        const LabelPtr pCopy = std::make_shared<Label>(*this);
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const;
 
 private:
     std::wstring m_strName;
@@ -795,13 +777,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner&) const {
-        auto pCopy = std::make_shared<Statement>(*this);
-        if (m_pLabel) {
-            pCopy->m_pLabel = std::make_shared<Label>(*m_pLabel);
-        }
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     LabelPtr m_pLabel;
@@ -823,11 +799,7 @@ public:
     // \return True.
     virtual bool isBlockLike() const { return true; }
 
-    virtual NodePtr clone(Cloner& _cloner) const {
-        auto pCopy = std::make_shared<Block>();
-        pCopy->appendClones(*this, _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 };
 
 /// Collection of statements that can be executed simultaneously.
@@ -844,11 +816,7 @@ public:
     // \return False.
     virtual bool isBlockLike() const { return false; }
 
-    virtual NodePtr clone(Cloner& _cloner) const {
-        auto pCopy = std::make_shared<ParallelBlock>();
-        pCopy->appendClones(*this, _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 };
 
 bool isTypeVariable(const NamedValuePtr &_pVar);

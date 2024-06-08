@@ -206,8 +206,8 @@ public:
 
     typedef std::map<std::wstring, BranchPtr> branch_map_t;
 
-    bool parsePredicateParams(Context &_ctx, AnonymousPredicate &_pred, branch_map_t & _branches);
-    bool parsePredicateBody(Context &_ctx, AnonymousPredicate &_pred, branch_map_t & _branches);
+    bool parsePredicateParams(Context &_ctx, const AnonymousPredicatePtr &_pred, branch_map_t & _branches);
+    bool parsePredicateBody(Context &_ctx, const AnonymousPredicatePtr &_pred, branch_map_t & _branches);
 
     template<class _Pred>
     bool parsePreconditions(Context &_ctx, _Pred &_pred, branch_map_t &_branches);
@@ -582,7 +582,7 @@ LambdaPtr Parser::parseLambda(Context &_ctx) {
         !parsePredicateBody(ctx, pLambda->getPredicate(), branches))
         return NULL;
 
-    if (!pLambda->getPredicate().getBlock())
+    if (!pLambda->getPredicate()->getBlock())
         ERROR(ctx, NULL, L"No body defined for anonymous predicate");
 
     _ctx.mergeChildren();
@@ -988,9 +988,9 @@ bool Parser::parsePreconditions(Context &_ctx, _Pred &_pred, branch_map_t &_bran
     } else {
         if (ExpressionPtr pFormula = parseExpression(ctx)) {
             if (pFormula->getKind() == Expression::FORMULA)
-                _pred.setPreCondition(pFormula->as<Formula>());
+                _pred->setPreCondition(pFormula->as<Formula>());
             else
-                _pred.setPreCondition(std::make_shared<Formula>(Formula::NONE, pFormula));
+                _pred->setPreCondition(std::make_shared<Formula>(Formula::NONE, pFormula));
         } else
             ERROR(ctx, false, L"Formula expected");
     }
@@ -1023,7 +1023,7 @@ bool Parser::parsePostconditions(Context &_ctx, _Pred &_pred, branch_map_t &_bra
 
     Context &ctx = *_ctx.createChild(false, Context::ALLOW_FORMULAS);
 
-    if (_pred.isHyperFunction()) {
+    if (_pred->isHyperFunction()) {
         while (ctx.consume(POST)) {
             BranchPtr pBranch = _branches[ctx.getValue()];
 
@@ -1043,7 +1043,7 @@ bool Parser::parsePostconditions(Context &_ctx, _Pred &_pred, branch_map_t &_bra
         if (ExpressionPtr pFormula = parseExpression(ctx)) {
             if (pFormula->getKind() != Expression::FORMULA)
                 pFormula = std::make_shared<Formula>(Formula::NONE, pFormula);
-            _pred.setPostCondition(pFormula->as<Formula>());
+            _pred->setPostCondition(pFormula->as<Formula>());
         } else
             ERROR(ctx, false, L"Formula expected");
     }
@@ -1063,7 +1063,7 @@ bool Parser::parseMeasure(Context &_ctx, _Pred &_pred) {
     if (!pMeasure)
         ERROR(_ctx, false, L"Expression expected");
 
-    _pred.setMeasure(pMeasure);
+    _pred->setMeasure(pMeasure);
 
     return true;
 }
@@ -1092,11 +1092,11 @@ bool Parser::fixupAsteriskedParameters(Context &_ctx, Params &_in, Params &_out)
     return bResult;
 }
 
-bool Parser::parsePredicateParams(Context &_ctx, AnonymousPredicate &_pred, branch_map_t & _branches) {
+bool Parser::parsePredicateParams(Context &_ctx, const AnonymousPredicatePtr &_pred, branch_map_t & _branches) {
     if (!_ctx.consume(LPAREN))
         ERROR(_ctx, NULL, L"Expected \"(\", got: %ls", TOK_S(_ctx));
 
-    if (!parseParamList(_ctx, _pred.getInParams(), &Parser::parseParam, ALLOW_ASTERSK | ALLOW_EMPTY_NAMES))
+    if (!parseParamList(_ctx, _pred->getInParams(), &Parser::parseParam, ALLOW_ASTERSK | ALLOW_EMPTY_NAMES))
         ERROR(_ctx, false, L"Failed to parse input parameters");
 
     bool bHasAsterisked = false;
@@ -1104,10 +1104,10 @@ bool Parser::parsePredicateParams(Context &_ctx, AnonymousPredicate &_pred, bran
     while (_ctx.consume(COLON)) {
         const auto pBranch = std::make_shared<Branch>();
 
-        _pred.getOutParams().add(pBranch);
+        _pred->getOutParams().add(pBranch);
 
-        if (_pred.getOutParams().size() == 1)
-            bHasAsterisked = fixupAsteriskedParameters(_ctx, _pred.getInParams(), *pBranch);
+        if (_pred->getOutParams().size() == 1)
+            bHasAsterisked = fixupAsteriskedParameters(_ctx, _pred->getInParams(), *pBranch);
         else if (bHasAsterisked)
             ERROR(_ctx, false, L"Hyperfunctions cannot use '*' in parameter list");
 
@@ -1123,7 +1123,7 @@ bool Parser::parsePredicateParams(Context &_ctx, AnonymousPredicate &_pred, bran
 
             lexer::Loc locLabel = _ctx.loc();
 
-            if (_ctx.is(INTEGER) && wcstoul(strLabel.c_str(), NULL, 10) != _pred.getOutParams().size())
+            if (_ctx.is(INTEGER) && wcstoul(strLabel.c_str(), NULL, 10) != _pred->getOutParams().size())
                 ERROR(_ctx, false, L"Numbers of numeric branch labels should correspond to branch order");
 
             ++_ctx;
@@ -1138,17 +1138,17 @@ bool Parser::parsePredicateParams(Context &_ctx, AnonymousPredicate &_pred, bran
         }
     }
 
-    if (_pred.getOutParams().empty()) {
+    if (_pred->getOutParams().empty()) {
         const auto pBranch = std::make_shared<Branch>();
 
-        _pred.getOutParams().add(pBranch);
-        fixupAsteriskedParameters(_ctx, _pred.getInParams(), *pBranch);
+        _pred->getOutParams().add(pBranch);
+        fixupAsteriskedParameters(_ctx, _pred->getInParams(), *pBranch);
     }
 
     // Create labels for unlabeled branches.
-    if (_pred.getOutParams().size() > 1) {
-        for (size_t i = 0; i < _pred.getOutParams().size(); ++ i) {
-            const auto pBranch = _pred.getOutParams().get(i);
+    if (_pred->getOutParams().size() > 1) {
+        for (size_t i = 0; i < _pred->getOutParams().size(); ++ i) {
+            const auto pBranch = _pred->getOutParams().get(i);
 
             if (!pBranch->getLabel()) {
                 pBranch->setLabel(std::make_shared<Label>(fmtInt(i + 1)));
@@ -1161,7 +1161,7 @@ bool Parser::parsePredicateParams(Context &_ctx, AnonymousPredicate &_pred, bran
     return true;
 }
 
-bool Parser::parsePredicateBody(Context &_ctx, AnonymousPredicate &_pred, branch_map_t & _branches) {
+bool Parser::parsePredicateBody(Context &_ctx, const AnonymousPredicatePtr &_pred, branch_map_t & _branches) {
     if (!_ctx.consume(RPAREN))
         ERROR(_ctx, false, L"Expected \")\", got: %ls", TOK_S(_ctx));
 
@@ -1170,8 +1170,8 @@ bool Parser::parsePredicateBody(Context &_ctx, AnonymousPredicate &_pred, branch
             ERROR(_ctx, false, L"Failed parsing preconditions");
 
     if (_ctx.is(LBRACE)) {
-        if (BlockPtr pBlock = parseBlock(_ctx))
-            _pred.setBlock(pBlock);
+        if (const auto pBlock = parseBlock(_ctx))
+            _pred->setBlock(pBlock);
         else
             ERROR(_ctx, false, L"Failed parsing predicate body");
     }
@@ -1196,7 +1196,7 @@ PredicatePtr Parser::parsePredicate(Context &_ctx) {
     branch_map_t branches;
     const auto pPred = std::make_shared<Predicate>(pCtx->scan());
 
-    if (!parsePredicateParams(*pCtx, *pPred, branches))
+    if (!parsePredicateParams(*pCtx, pPred, branches))
         return nullptr;
 
     if (!_ctx.addPredicate(pPred))
@@ -1206,7 +1206,7 @@ PredicatePtr Parser::parsePredicate(Context &_ctx) {
 
     pPred->setLoc(&*_ctx.loc());
 
-    if (!parsePredicateBody(*pCtx, *pPred, branches))
+    if (!parsePredicateBody(*pCtx, pPred, branches))
         return NULL;
 
     if (!pPred->getBlock() && !pCtx->consume(SEMICOLON))
@@ -1233,7 +1233,8 @@ VariableDeclarationPtr Parser::parseVariableDeclaration(Context &_ctx, int _nFla
     if (!ctx.is(IDENTIFIER))
         ERROR(ctx, NULL, L"Expected identifier, got: %ls", TOK_S(ctx));
 
-    const auto pDecl = std::make_shared<VariableDeclaration>(_nFlags & LOCAL_VARIABLE, ctx.scan());
+    const auto pDecl = std::make_shared<VariableDeclaration>();
+    pDecl->setVariable(std::make_shared<Variable>(_nFlags & LOCAL_VARIABLE, ctx.scan()));
 
     if ((_nFlags & PART_OF_LIST) == 0)
         pDecl->getVariable()->setType(pType);
@@ -1621,11 +1622,11 @@ PredicateTypePtr Parser::parsePredicateType(Context &_ctx) {
         UNEXPECTED(ctx, ")");
 
     if (ctx.is(PRE))
-        if (!parsePreconditions(ctx, *pType, branches))
+        if (!parsePreconditions(ctx, pType, branches))
             ERROR(ctx, NULL, L"Failed parsing preconditions");
 
     if (ctx.is(POST))
-        if (!parsePostconditions(ctx, *pType, branches))
+        if (!parsePostconditions(ctx, pType, branches))
             ERROR(ctx, NULL, L"Failed parsing postconditions");
 
     _ctx.mergeChildren();
@@ -2011,7 +2012,8 @@ StructFieldDefinitionPtr Parser::parseConstructorField(Context &_ctx) {
 
         if (!pDecl) {
             // Unresolved identifier treated as variable declaration.
-            pDecl = std::make_shared<VariableDeclaration>(true, ctx.scan());
+            pDecl = std::make_shared<VariableDeclaration>();
+            pDecl->setVariable(std::make_shared<Variable>(true, ctx.scan()));
             pDecl->getVariable()->setType(std::make_shared<Type>(Type::GENERIC));
         }
 
@@ -2535,7 +2537,8 @@ ExpressionPtr Parser::parseCallResult(Context &_ctx, VariableDeclarationPtr &_pD
     TypePtr pType = parseType(*pCtx);
 
     if (pType && pCtx->is(IDENTIFIER)) {
-        _pDecl = std::make_shared<VariableDeclaration>(true, pCtx->scan());
+        _pDecl = std::make_shared<VariableDeclaration>();
+        _pDecl->setVariable(std::make_shared<Variable>(true, pCtx->scan()));
         _pDecl->getVariable()->setType(pType);
         _pDecl->getVariable()->setMutable(false);
         pExpr = std::make_shared<VariableReference>(_pDecl->getVariable());
@@ -3057,12 +3060,12 @@ bool Parser::parseDeclarations(Context &_ctx, const ModulePtr &_module) {
             CASE_BUILTIN_TYPE:
             case PREDICATE:
             case MUTABLE: {
-                Collection<VariableDeclaration> decls;
-                parseParamList(*pCtx, decls, &Parser::parseVariableDeclaration, ALLOW_INITIALIZATION | PART_OF_LIST | SINGLE_TYPE);
-                if (decls.empty())
+                const auto decls = std::make_shared<Collection<VariableDeclaration>>();
+                parseParamList(*pCtx, *decls, &Parser::parseVariableDeclaration, ALLOW_INITIALIZATION | PART_OF_LIST | SINGLE_TYPE); //TODO:dyp: fix
+                if (decls->empty())
                     ERROR(* pCtx, false, L"Failed parsing variable declaration");
-                _module->getVariables().append(decls);
-                if (!typecheck(*pCtx, decls.as<Node>()))
+                _module->getVariables().append(*decls);
+                if (!typecheck(*pCtx, decls->as<Node>()))
                         return false;
             }
             break;

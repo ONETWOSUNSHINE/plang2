@@ -95,7 +95,7 @@ int FreshType::addFlags(int _flags) {
 }
 
 ir::NodePtr FreshType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, FreshType(*this));
+    return NEW_CLONE(this, _cloner, *this);
 }
 
 bool FreshType::less(const Type &_other) const {
@@ -163,11 +163,11 @@ bool Formula::hasFresh() const {
 }
 
 FormulaPtr Formula::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, Formula(m_kind, _cloner.get(m_pLhs), _cloner.get(m_pRhs)));
+    return NEW_CLONE(this, _cloner, m_kind, _cloner.get(m_pLhs), _cloner.get(m_pRhs), nullptr);//TODO:dyp: forget to copy m_conditions
 }
 
 ContextPtr Context::clone(Cloner &_cloner) const {
-    const auto pNew = NEW_CLONE(this, _cloner, Context());
+    const auto pNew = NEW_CLONE(this, _cloner);
 
     for (Formulas::const_iterator i = pFormulas->begin(); i != pFormulas->end(); ++i)
         pNew->pFormulas->insert(_cloner.get(*i));
@@ -183,7 +183,7 @@ ContextPtr Context::clone(Cloner &_cloner) const {
 }
 
 FormulaPtr CompoundFormula::clone(Cloner &_cloner) const {
-    CompoundFormulaPtr pCF = NEW_CLONE(this, _cloner, CompoundFormula());
+    const auto pCF = NEW_CLONE(this, _cloner);
 
     for (size_t i = 0; i < size(); ++i) {
         Formulas &part = pCF->addPart();
@@ -511,7 +511,7 @@ bool Context::implies(Formula &_f) {
     ir::TypePtr c;
 
 #define CHECK(P,PL,PR,Q,QL,QR)                                                  \
-        if (lookup(Formula(Formula::P, PL, PR), Formula(Formula::Q, QL, QR)))   \
+        if (lookup(std::make_shared<Formula>(Formula::P, PL, PR), std::make_shared<Formula>(Formula::Q, QL, QR)))   \
             return true
 
     switch (_f.getKind()) {
@@ -773,58 +773,58 @@ Formulas::iterator Formulas::findSubst(const ir::TypePtr &_pType) const {
     return i;
 }
 
-ir::TypePtr Context::lookup(const Formula &_f, const Formula &_cond) {
+ir::TypePtr Context::lookup(const FormulaPtr &_f, const FormulaPtr &_cond) {
     for (ContextIterator it(this, true); !it.eof(); it.next()) {
         Formulas::iterator i(it.getIter());
         Formula &g = **i;
 
-        if (!_f.is(tc::Formula::COMPARABLE) && !_f.is(g.getKind()))
+        if (!_f->is(tc::Formula::COMPARABLE) && !_f->is(g.getKind()))
             continue;
 
         ir::TypePtr pLhs = g.getLhs();
         ir::TypePtr pRhs = g.getRhs();
 
-        if (_f.isSymmetric()) {
-            if (_f.getLhs() && *_f.getLhs() != *pLhs)
+        if (_f->isSymmetric()) {
+            if (_f->getLhs() && *_f->getLhs() != *pLhs)
                 std::swap(pLhs, pRhs);
 
-            if (_f.getRhs() && *_f.getRhs() != *pRhs)
+            if (_f->getRhs() && *_f->getRhs() != *pRhs)
                 std::swap(pLhs, pRhs);
         }
 
-        if (_f.getLhs() && *_f.getLhs() != *pLhs)
+        if (_f->getLhs() && *_f->getLhs() != *pLhs)
             continue;
 
-        if (_f.getRhs() && *_f.getRhs() != *pRhs)
+        if (_f->getRhs() && *_f->getRhs() != *pRhs)
             continue;
 
-        tc::Formula h = _cond;
-        ir::TypePtr p = _f.getLhs() ? pRhs : pLhs;
+        const auto h = std::make_shared<Formula>(*_cond);
+        const auto p = _f->getLhs() ? pRhs : pLhs;
 
-        if (!h.getLhs())
-            h.setLhs(p);
+        if (!h->getLhs())
+            h->setLhs(p);
         else
-            h.setRhs(p);
+            h->setRhs(p);
 
-        if (h.eval() == tc::Formula::TRUE)
+        if (h->eval() == tc::Formula::TRUE)
             return p;
 
-        pLhs = h.getLhs();
-        pRhs = h.getRhs();
+        pLhs = h->getLhs();
+        pRhs = h->getRhs();
 
-        if (!it.find(h.as<Formula>()).eof())//TODO:dyp: fix
+        if (!it.find(h->as<Formula>()).eof())
             return p;
 
-        if (h.isSymmetric()) {
-            h.setLhs(pRhs);
-            h.setRhs(pLhs);
+        if (h->isSymmetric()) {
+            h->setLhs(pRhs);
+            h->setRhs(pLhs);
 
-            if (!it.find(h.as<Formula>()).eof())//TODO:dyp: fix
+            if (!it.find(h->as<Formula>()).eof())
                 return p;
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 ContextIterator::ContextIterator(const ContextIterator &_other) :

@@ -25,7 +25,8 @@ public:
         Formula(_formula), inferedFrom(_inferedFrom) {}
 
     Relation(const ir::TypePtr &_pLhs, const ir::TypePtr &_pRhs, bool _bStrict = false,
-            bool _bUsed = true, const RelationPtrPairs &_inferedFrom = RelationPtrPairs());
+            bool _bUsed = true, const RelationPtrPairs &_inferedFrom = RelationPtrPairs()) :
+        Formula(_bStrict ? SUBTYPE_STRICT : SUBTYPE, _pLhs, _pRhs), bUsed(_bUsed), inferedFrom(_inferedFrom) {}
 
     bool isStrict() const { return is(SUBTYPE_STRICT); }
     void setStrict(bool _bStrict) { return setKind(_bStrict ? SUBTYPE_STRICT : SUBTYPE); }

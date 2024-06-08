@@ -27,8 +27,8 @@ bool Refute::_run(int & _nResult) {
 
         // Check if there exists such c for which the relations P and Q hold.
 #define CHECK(P,PL,PR,Q,QL,QR) \
-        if (_context()->lookup(tc::Formula(tc::Formula::P, PL, PR),   \
-                tc::Formula(tc::Formula::Q, QL, QR))) {             \
+        if (_context()->lookup(std::make_shared<tc::Formula>(tc::Formula::P, PL, PR),   \
+                std::make_shared<tc::Formula>(tc::Formula::Q, QL, QR))) {             \
             _nResult = tc::Formula::FALSE;                           \
             return true;                                            \
         }

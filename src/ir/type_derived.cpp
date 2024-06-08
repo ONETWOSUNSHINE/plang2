@@ -64,7 +64,7 @@ TypePtr SetType::getJoin(const TypePtr &_other) {
 }
 
 NodePtr SetType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, SetType(_cloner.get(getBaseType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getBaseType()));
 }
 
 // References.
@@ -90,7 +90,7 @@ TypePtr RefType::getJoin(const TypePtr &_other) {
 }
 
 NodePtr RefType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, RefType(_cloner.get(getBaseType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getBaseType()));
 }
 
 // Lists.
@@ -116,7 +116,7 @@ TypePtr ListType::getJoin(const TypePtr &_other) {
 }
 
 NodePtr ListType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, ListType(_cloner.get(getBaseType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getBaseType()));
 }
 
 // Maps.
@@ -194,5 +194,5 @@ int MapType::getMonotonicity(const Type &_var) const {
 }
 
 NodePtr MapType::clone(Cloner &_cloner) const {
-    return NEW_CLONE(this, _cloner, MapType(_cloner.get(getIndexType()), _cloner.get(getBaseType())));
+    return NEW_CLONE(this, _cloner, _cloner.get<Type>(getIndexType()), _cloner.get<Type>(getBaseType()));
 }

@@ -236,8 +236,8 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
     do {                                                                            \
         if (isStopped())                                                            \
             return false;                                                           \
-        const auto nodePtr = (_PARAM)->as<ir::Node>();                      \
-        if (nodePtr) {                                                               \
+        if (_PARAM) {                                                               \
+            const auto nodePtr = (_PARAM)->as<ir::Node>();                      \
             ir::NodeSetterImpl< ir::_PTYPE, ir::_TYPE, &ir::_PTYPE::_SETTER > setter(_PARENT);  \
             Ctx ctx(this, nodePtr, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,     \
                 &Visitor::handle##_ROLE##Post, &setter);                            \

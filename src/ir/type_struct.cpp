@@ -17,7 +17,7 @@ bool StructType::empty() const {
 }
 
 NodePtr StructType::clone(Cloner &_cloner) const {
-    StructTypePtr pCopy = NEW_CLONE(this, _cloner, StructType());
+    const auto pCopy = NEW_CLONE(this, _cloner);
     pCopy->getNamesOrd()->appendClones(*getNamesOrd(), _cloner);
     pCopy->getTypesOrd()->appendClones(*getTypesOrd(), _cloner);
     pCopy->getNamesSet()->appendClones(*getNamesSet(), _cloner);
