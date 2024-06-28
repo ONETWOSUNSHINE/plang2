@@ -19,7 +19,8 @@ public:
             m_bRoot = false;
             return true;
         }
-        m_pContainer->add(&_node);
+        auto _nodePtr = std::make_shared<ir::Node>(_node);
+        m_pContainer->add(_nodePtr);
         return false;
     }
 
@@ -37,7 +38,7 @@ private:
 namespace ir {
 
 NodesPtr Node::getChildren() const {
-    return ChildrenCollector(new Nodes()).run(this);
+    return ChildrenCollector(std::make_shared<Nodes>()).run(std::const_pointer_cast<Node>(shared_from_this()));
 }
 
 bool Node::_less(const NodePtr& _pLeft, const NodePtr& _pRight) {
@@ -67,14 +68,14 @@ TypePtr resolveBaseType(const TypePtr &_pType) {
 
     while (pType) {
         if (pType->getKind() == Type::NAMED_REFERENCE) {
-            NamedReferenceTypePtr pRef(pType.as<NamedReferenceType>());
+            NamedReferenceTypePtr pRef = std::dynamic_pointer_cast<NamedReferenceType>(pType);
 
             if (pRef->getDeclaration() && pRef->getDeclaration()->getType())
                 pType = pRef->getDeclaration()->getType();
             else
                 break;
         } else if (pType->getKind() == Type::PARAMETERIZED) {
-            pType = pType.as<ParameterizedType>()->getActualType();
+            pType = std::dynamic_pointer_cast<ParameterizedType>(pType)->getActualType();
         } else
             break;
     }
@@ -136,7 +137,7 @@ void Param::updateUsed(Node &_root) {
 
         virtual bool visitParam(Param &_param) {
             _param.setUsed(false);
-            params.insert(&_param);
+            params.insert(std::static_pointer_cast<Param>(_param.shared_from_this()));
             return true;
         }
     };
@@ -151,8 +152,12 @@ void Param::updateUsed(Node &_root) {
 
         virtual bool visitVariableReference(VariableReference &_val) {
             if (_val.getTarget() && _val.getTarget()->getKind() == NamedValue::PREDICATE_PARAMETER &&
-                    enumerator.params.find(_val.getTarget()) != enumerator.params.end())
-                _val.getTarget().as<Param>()->setUsed(true);
+                enumerator.params.find(_val.getTarget()) != enumerator.params.end()) {
+                auto paramPtr = std::dynamic_pointer_cast<Param>(_val.getTarget());
+                if (paramPtr) {
+                    paramPtr->setUsed(true);
+                }
+            }
             return true;
         }
     } updater;

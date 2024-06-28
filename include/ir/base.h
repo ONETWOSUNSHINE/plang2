@@ -24,16 +24,17 @@
 #include <string>
 #include <map>
 #include <functional>
+#include <memory>
 
-#include "autoptr.h"
+#include "assert.h"
 #include "lexer.h"
 
 namespace ir {
 
-// Used s/Auto<([^_][\w:]*)>(?:\s+(>))?/\1Ptr\2/g to replace "Auto<Foo>" with "FooPtr".
+// Used s/std::shared_ptr<([^_][\w:]*)>(?:\s+(>))?/\1Ptr\2/g to replace "std::shared_ptr<Foo>" with "FooPtr".
 #define NODE(_Node, ...)    \
     class _Node;            \
-    typedef Auto<_Node> _Node##Ptr;
+    typedef std::shared_ptr<_Node> _Node##Ptr;
 #include "nodes.inl"
 NODE(Node)
 NODE(Branch)
@@ -47,7 +48,7 @@ template<class _Node, class _Base = Node>
 class Collection;
 
 typedef Collection<Node> Nodes;
-typedef Auto<Nodes> NodesPtr;
+typedef std::shared_ptr<Nodes> NodesPtr;
 
 /// Base class for all internal representation objects.
 ///
@@ -67,7 +68,7 @@ typedef Auto<Nodes> NodesPtr;
 /// Node class also contains a (possibly NULL) pointer to list of pragmas
 /// relevant to the node's location in source code.
 ///
-class Node : public Counted {
+class Node: public std::enable_shared_from_this<Node> {
 public:
     /// Node kind.
     enum {
@@ -116,9 +117,9 @@ public:
     virtual bool equals(const Node& _other) const { return getNodeKind() == _other.getNodeKind(); }
 
     // \returns Deep copy of the node.
-    virtual NodePtr clone(Cloner &_cloner) const { return NULL; }
+    virtual NodePtr clone() const { return nullptr; }
 
-protected:
+protected:  
     static bool _less(const NodePtr& _pLeft, const NodePtr& _pRight);
     static bool _equals(const NodePtr& _pLeft, const NodePtr& _pRight);
 
@@ -164,26 +165,26 @@ public:
     /// Get element by index.
     /// \param _c Index of element (zero-based).
     /// \return Pointer to element or NULL if index is out of bounds.
-    Auto<_Node> get(size_t _c) const {
-        return _c < m_nodes.size() ? m_nodes[_c] : Auto<_Node>();
+    std::shared_ptr<_Node> get(size_t _c) const {
+        return _c < m_nodes.size() ? m_nodes[_c] : std::shared_ptr<_Node>();
     }
 
     /// Get last element of collection.
     /// \return Pointer to element or NULL if collection is empty.
-    Auto<_Node> back() const {
-        return !m_nodes.empty() ? m_nodes.back() : Auto<_Node>();
+    std::shared_ptr<_Node> back() const {
+        return !m_nodes.empty() ? m_nodes.back() : std::shared_ptr<_Node>();
     }
 
     /// Add element to the collection.
     /// \param _pNode Pointer to node to add.
-    Auto<_Node> add(const Auto<_Node> &_pNode) {
+    std::shared_ptr<_Node> add(const std::shared_ptr<_Node> &_pNode) {
         m_nodes.push_back(_pNode);
         return m_nodes.back();
     }
 
     /// Add element to the front of collection.
     /// \param _pNode Pointer to node to add.
-    Auto<_Node> prepend(const Auto<_Node> &_pNode) {
+    std::shared_ptr<_Node> prepend(const std::shared_ptr<_Node> &_pNode) {
         m_nodes.insert(m_nodes.begin(), _pNode);
         return m_nodes.front();
     }
@@ -205,10 +206,10 @@ public:
     /// Append elements from another collection.
     /// \param _other Other collection.
     template<typename _OtherNode, typename _OtherBase>
-    void appendClones(const Collection<_OtherNode, _OtherBase> &_other, Cloner &_cloner) {
+    void appendClones(const Collection<_OtherNode, _OtherBase> &_other) {
         m_nodes.reserve(m_nodes.size() + _other.size());
         for (size_t i = 0; i < _other.size(); ++i)
-            add(_cloner.get(_other.get(i)));
+            add(std::make_shared<_OtherNode>(*_other.get(i)));
     }
 
     void clear() {
@@ -226,7 +227,7 @@ public:
     /// Replace element by index.
     /// \param _c Index of element (zero-based).
     /// \param _pNode Pointer to new element.
-    void set(size_t _c, const Auto<_Node> &_pNode) {
+    void set(size_t _c, const std::shared_ptr<_Node> &_pNode) {
         if (_c < m_nodes.size())
             m_nodes[_c] = _pNode;
     }
@@ -241,20 +242,20 @@ public:
             m_nodes.insert(m_nodes.begin() + _c, _other.m_nodes.begin(), _other.m_nodes.end());
     }
 
-    void insert(size_t _c, const Auto<_Node> &_pNode) {
+    void insert(size_t _c, const std::shared_ptr<_Node> &_pNode) {
         if (_c <= m_nodes.size())
             m_nodes.insert(m_nodes.begin() + _c, _pNode);
     }
 
     template <class InputIterator>
-    void insert(typename std::vector<Auto<_Node> >::iterator _position, InputIterator _first, InputIterator _last) {
+    void insert(typename std::vector<std::shared_ptr<_Node>>::iterator _position, InputIterator _first, InputIterator _last) {
         m_nodes.insert(_position, _first, _last);
     }
 
     /// Remove element.
     /// \param _pNode Pointer to element to remove.
     /// \return True if node was successfully removed, false if not found.
-    bool remove(const Auto<_Node> &_pNode) {
+    bool remove(const std::shared_ptr<_Node> &_pNode) {
         auto iNode = std::find(m_nodes.begin(), m_nodes.end(), _pNode);
         if (iNode == m_nodes.end())
             return false;
@@ -312,22 +313,22 @@ public:
         return true;
     }
 
-    typename std::vector<Auto<_Node> >::iterator begin() {
+    auto begin() {
         return m_nodes.begin();
     }
 
-    typename std::vector<Auto<_Node> >::iterator end() {
+    auto end() {
         return m_nodes.end();
     }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        Auto<Collection<_Node, _Base> > pCopy = NEW_CLONE(this, _cloner, Collection());
-        pCopy->appendClones(*this, _cloner);
+    virtual NodePtr clone() const {
+        auto pCopy = std::make_shared<Collection>(*this);
+        pCopy->appendClones(*this);
         return pCopy;
     }
 
 private:
-    std::vector<Auto<_Node> > m_nodes;
+    std::vector<std::shared_ptr<_Node>> m_nodes;
 
     template<class, class> friend class Collection;
 };
@@ -469,8 +470,8 @@ public:
     virtual bool less(const Type &_other) const;
 
     // Perform deep copy.
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, Type(m_kind, m_nBits));
+    virtual NodePtr clone() const {
+        return std::make_shared<Type>(*this);
     }
 
     virtual bool hasFresh() const;
@@ -534,12 +535,12 @@ public:
      };
 
     /// Default constructor.
-    NamedValue() : m_pType(NULL), m_strName(L"") {}
+    NamedValue() : m_pType(nullptr), m_strName(L"") {}
 
     /// Constructor for initializing using name.
     /// \param _strName Identifier.
     /// \param _pType Type associated with value.
-    NamedValue(const std::wstring &_strName, const TypePtr &_pType = NULL)
+    NamedValue(const std::wstring &_strName, const TypePtr &_pType = nullptr)
         : m_pType(_pType), m_strName(_strName) {}
 
     virtual int getNodeKind() const { return Node::NAMED_VALUE; }
@@ -570,8 +571,8 @@ public:
         return equals(_other);
     }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const NamedValuePtr pCopy = NEW_CLONE(this, _cloner, NamedValue(m_strName, _cloner.get(m_pType.ptr())));
+    virtual NodePtr clone() const {
+        const NamedValuePtr pCopy = std::make_shared<NamedValue>(*this);
         pCopy->setLoc(this->getLoc());
         return pCopy;
 
@@ -590,14 +591,14 @@ private:
 class Param : public NamedValue {
 public:
     /// Default constructor.
-    Param() : m_pLinkedParam(NULL), m_bOutput(false), m_bUsed(false) {}
+    Param() : m_pLinkedParam(nullptr), m_bOutput(false), m_bUsed(false) {}
 
     /// Constructor for initializing using name.
     /// \param _strName Identifier.
     /// \param _pType Type associated with value.
-    Param(const std::wstring &_strName, const TypePtr &_pType = NULL,
+    Param(const std::wstring &_strName, const TypePtr &_pType = nullptr,
             bool _bOutput = false, bool _bUsed = false)
-        : NamedValue(_strName, _pType), m_pLinkedParam(NULL),
+        : NamedValue(_strName, _pType), m_pLinkedParam(nullptr),
           m_bOutput(_bOutput), m_bUsed(_bUsed) {}
 
     /// Get value kind.
@@ -624,9 +625,8 @@ public:
     void setUsed(bool _bValue) { m_bUsed = _bValue; }
     static void updateUsed(Node &_root);
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, Param(getName(), _cloner.get(getType().ptr()),
-                m_bOutput, m_bUsed));
+    virtual NodePtr clone() const {
+        return std::make_shared<Param>(*this);
     }
 
 private:
@@ -641,9 +641,9 @@ private:
     public:                                                                         \
         _Name() {}                                                                  \
         _Name(Collection<_Item> &_collection) : Collection<_Item>(_collection) {}   \
-        virtual NodePtr clone(Cloner &_cloner) const {                              \
-            Auto<_Name> pCopy = NEW_CLONE(this, _cloner, _Name());                  \
-            pCopy->appendClones(*this, _cloner);                                    \
+        virtual NodePtr clone() const {                                             \
+            auto pCopy = std::make_shared<_Name>(*this);                            \
+            pCopy->appendClones(*this);                                             \
             return pCopy;                                                           \
         }                                                                           \
     }
@@ -677,8 +677,8 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const LabelPtr pCopy = NEW_CLONE(this, _cloner, Label(m_strName));
+    virtual NodePtr clone() const {
+        const LabelPtr pCopy = std::make_shared<Label>(*this);
         pCopy->setLoc(this->getLoc());
         return pCopy;
     }
@@ -739,7 +739,7 @@ public:
     };
 
     /// Default constructor.
-    Statement(const LabelPtr &_pLabel = NULL) : m_pLabel(_pLabel) {}
+    Statement(const LabelPtr &_pLabel = nullptr) : m_pLabel(_pLabel) {}
 
     virtual int getNodeKind() const { return Node::STATEMENT; }
 
@@ -762,8 +762,8 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, Statement(_cloner.get(getLabel())));
+    virtual NodePtr clone() const {
+        return std::make_shared<Statement>(*this);
     }
 
 private:
@@ -776,7 +776,7 @@ private:
 class Block : public Collection<Statement, Statement> {
 public:
     /// Default constructor.
-    Block(const LabelPtr &_pLabel = NULL) { setLabel(_pLabel); }
+    Block(const LabelPtr &_pLabel = nullptr) { setLabel(_pLabel); }
 
     /// Get statement kind.
     /// \returns #Block.
@@ -786,9 +786,9 @@ public:
     // \return True.
     virtual bool isBlockLike() const { return true; }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        Auto<Block> pCopy = NEW_CLONE(this, _cloner, Block(_cloner.get(this->getLabel())));
-        pCopy->appendClones(*this, _cloner);
+    virtual NodePtr clone() const {
+        auto pCopy = std::make_shared<Block>(*this);
+        pCopy->appendClones(*this);
         return pCopy;
     }
 };
@@ -797,7 +797,7 @@ public:
 class ParallelBlock : public Block {
 public:
     /// Default constructor.
-    ParallelBlock(const LabelPtr &_pLabel = NULL) : Block(_pLabel) {}
+    ParallelBlock(const LabelPtr &_pLabel = nullptr) : Block(_pLabel) {}
 
     /// Get statement kind.
     /// \returns #ParallelBlock.
@@ -807,9 +807,9 @@ public:
     // \return False.
     virtual bool isBlockLike() const { return false; }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        Auto<ParallelBlock> pCopy = NEW_CLONE(this, _cloner, ParallelBlock(_cloner.get(this->getLabel())));
-        pCopy->appendClones(*this, _cloner);
+    virtual NodePtr clone() const {
+        auto pCopy = std::make_shared<ParallelBlock>(*this);
+        pCopy->appendClones(*this);
         return pCopy;
     }
 };
