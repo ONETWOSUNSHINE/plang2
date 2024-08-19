@@ -9,7 +9,7 @@ using namespace ir;
 #define TRAVERSE VISITOR_TRAVERSE
 #define TRAVERSE_COL VISITOR_TRAVERSE_COL
 
-Node* Visitor::getParent() {
+NodePtr Visitor::getParent() {
     if (m_path.empty())
         return nullptr;
     auto i = std::prev(m_path.end());
@@ -18,231 +18,315 @@ Node* Visitor::getParent() {
     return (--i)->pNode;
 }
 
-bool Visitor::visitNode(Node &_node) {
+bool Visitor::visitNode(ir::NodePtr &_pNode) {
     return true;
 }
 
-bool Visitor::walkUpFromNode(Node &_node) {
-    return visitNode(_node);
+bool Visitor::walkUpFromNode(ir::NodePtr &_pNode) {
+    return visitNode(_pNode);
 }
 
-bool Visitor::traverseNode(Node &_node) {
-    switch (_node.getNodeKind()) {
-        case Node::COLLECTION:
-            TRAVERSE_COL(Node, TopLevel, (Collection<Node> &)_node);
+bool Visitor::traverseNode(NodePtr &_pNode) {
+    switch (_pNode->getNodeKind()) {
+        case Node::COLLECTION: {
+            auto nodeColPtr = std::static_pointer_cast<Collection<Node>>(_pNode);
+            TRAVERSE_COL(Node, TopLevel, nodeColPtr);
             return true;
-        case Node::TYPE:
-            return traverseType((Type &)_node);
-        case Node::NAMED_VALUE:
-            return traverseNamedValue((NamedValue &)_node);
-        case Node::STATEMENT:
-            return traverseStatement((Statement &)_node);
-        case Node::EXPRESSION:
-            return traverseExpression((Expression &)_node);
-        case Node::MODULE:
-            return traverseModule((Module &)_node);
-        case Node::CLASS:
-            return traverseClass((Class &)_node);
-        case Node::LABEL:
-            return traverseLabel((Label &)_node);
-        case Node::MESSAGE:
-            return traverseMessage((Message &)_node);
-        case Node::PROCESS:
-            return traverseProcess((Process &)_node);
-        case Node::UNION_CONSTRUCTOR_DECLARATION:
-            return traverseUnionConstructorDeclaration((UnionConstructorDeclaration &)_node);
-        case Node::ELEMENT_DEFINITION:
-            return traverseElementDefinition((ElementDefinition &)_node);
-        case Node::STRUCT_FIELD_DEFINITION:
-            return traverseStructFieldDefinition((StructFieldDefinition &)_node);
-        case Node::ARRAY_PART_DEFINITION:
-            return traverseArrayPartDefinition((ArrayPartDefinition &)_node);
-        case Node::SWITCH_CASE:
-            return traverseSwitchCase((SwitchCase &)_node);
-        case Node::MESSAGE_HANDLER:
-            return traverseMessageHandler((MessageHandler &)_node);
+        }
+        case Node::TYPE: {
+            auto typePtr = std::static_pointer_cast<Type>(_pNode);
+            return traverseType(typePtr);
+        }
+        case Node::NAMED_VALUE: {
+            auto namedValuePtr = std::static_pointer_cast<NamedValue>(_pNode);
+            return traverseNamedValue(namedValuePtr);
+        }
+        case Node::STATEMENT: {
+            auto statementPtr = std::static_pointer_cast<Statement>(_pNode);
+            return traverseStatement(statementPtr);
+        }
+        case Node::EXPRESSION: {
+            auto expressionPtr = std::static_pointer_cast<Expression>(_pNode);
+            return traverseExpression(expressionPtr);
+        }
+        case Node::MODULE: {
+            auto modulePtr = std::static_pointer_cast<Module>(_pNode);
+            return traverseModule(modulePtr);
+        }
+        case Node::CLASS: {
+            auto classPtr = std::static_pointer_cast<Class>(_pNode);
+            return traverseClass(classPtr);
+        }
+        case Node::LABEL: {
+            auto labelPtr = std::static_pointer_cast<Label>(_pNode);
+            return traverseLabel(labelPtr);
+        }
+        case Node::MESSAGE: {
+            auto messagePtr = std::static_pointer_cast<Message>(_pNode);
+            return traverseMessage(messagePtr);
+        }
+        case Node::PROCESS: {
+            auto processPtr = std::static_pointer_cast<Process>(_pNode);
+            return traverseProcess(processPtr);
+        }
+        case Node::UNION_CONSTRUCTOR_DECLARATION: {
+            auto unionConstructorDeclarationPtr = std::static_pointer_cast<UnionConstructorDeclaration>(_pNode);
+            return traverseUnionConstructorDeclaration(unionConstructorDeclarationPtr);
+        }
+        case Node::ELEMENT_DEFINITION: {
+            auto elementDefinitionPtr = std::static_pointer_cast<ElementDefinition>(_pNode);
+            return traverseElementDefinition(elementDefinitionPtr);
+        }
+        case Node::STRUCT_FIELD_DEFINITION: {
+            auto structFieldDefinitionPtr = std::static_pointer_cast<StructFieldDefinition>(_pNode);
+            return traverseStructFieldDefinition(structFieldDefinitionPtr);
+        }
+        case Node::ARRAY_PART_DEFINITION: {
+            auto arrayPartDefinitionPtr = std::static_pointer_cast<ArrayPartDefinition>(_pNode);
+            return traverseArrayPartDefinition(arrayPartDefinitionPtr);
+        }
+        case Node::SWITCH_CASE: {
+            auto switchCasePtr = std::static_pointer_cast<SwitchCase>(_pNode);
+            return traverseSwitchCase(switchCasePtr);
+        }
+        case Node::MESSAGE_HANDLER: {
+            auto messageHandlerPtr = std::static_pointer_cast<MessageHandler>(_pNode);
+            return traverseMessageHandler(messageHandlerPtr);
+        }
     }
 
     return true;
 }
 
-bool Visitor::traverseType(Type &_type) {
-    switch (_type.getKind()) {
-        case Type::TYPE:
-            return traverseTypeType((TypeType &)_type);
-        case Type::ENUM:
-            return traverseEnumType((EnumType &)_type);
-        case Type::STRUCT:
-            return traverseStructType((StructType &)_type);
-        case Type::UNION:
-            return traverseUnionType((UnionType &)_type);
-        case Type::ARRAY:
-            return traverseArrayType((ArrayType &)_type);
-        case Type::SET:
-            return traverseSetType((SetType &)_type);
-        case Type::MAP:
-            return traverseMapType((MapType &)_type);
-        case Type::LIST:
-            return traverseListType((ListType &)_type);
-        case Type::SUBTYPE:
-            return traverseSubtype((Subtype &)_type);
-        case Type::RANGE:
-            return traverseRange((Range &)_type);
-        case Type::PREDICATE:
-            return traversePredicateType((PredicateType &)_type);
-        case Type::PARAMETERIZED:
-            return traverseParameterizedType((ParameterizedType &)_type);
-        case Type::NAMED_REFERENCE:
-            return traverseNamedReferenceType((NamedReferenceType &)_type);
-        case Type::REFERENCE:
-            return traverseRefType((RefType &)_type);
+bool Visitor::traverseType(std::shared_ptr<Type> &_pType) {
+    switch (_pType->getKind()) {
+    case Type::TYPE: {
+        auto typePtr = std::static_pointer_cast<TypeType>(_pType);
+        return traverseTypeType(typePtr);
+    }
+    case Type::ENUM: {
+        auto enumPtr = std::static_pointer_cast<EnumType>(_pType);
+        return traverseEnumType(enumPtr);
+    }
+    case Type::STRUCT: {
+        auto structPtr = std::static_pointer_cast<StructType>(_pType);
+        return traverseStructType(structPtr);
+    }
+    case Type::UNION: {
+        auto unionPtr = std::static_pointer_cast<UnionType>(_pType);
+        return traverseUnionType(unionPtr);
+    }
+    case Type::ARRAY: {
+        auto arrayPtr = std::static_pointer_cast<ArrayType>(_pType);
+        return traverseArrayType(arrayPtr);
+    }
+    case Type::SET: {
+        auto setPtr = std::static_pointer_cast<SetType>(_pType);
+        return traverseSetType(setPtr);
+    }
+    case Type::MAP: {
+        auto mapPtr = std::static_pointer_cast<MapType>(_pType);
+        return traverseMapType(mapPtr);
+    }
+    case Type::LIST: {
+        auto listPtr = std::static_pointer_cast<ListType>(_pType);
+        return traverseListType(listPtr);
+    }
+    case Type::SUBTYPE: {
+        auto subtypePtr = std::static_pointer_cast<Subtype>(_pType);
+        return traverseSubtype(subtypePtr);
+    }
+    case Type::RANGE: {
+        auto rangePtr = std::static_pointer_cast<Range>(_pType);
+        return traverseRange(rangePtr);
+    }
+    case Type::PREDICATE: {
+        auto predicatePtr = std::static_pointer_cast<PredicateType>(_pType);
+        return traversePredicateType(predicatePtr);
+    }
+    case Type::PARAMETERIZED: {
+        auto parameterizedPtr = std::static_pointer_cast<ParameterizedType>(_pType);
+        return traverseParameterizedType(parameterizedPtr);
+    }
+    case Type::NAMED_REFERENCE: {
+        auto namedReferencePtr = std::static_pointer_cast<NamedReferenceType>(_pType);
+        return traverseNamedReferenceType(namedReferencePtr);
+    }
+    case Type::REFERENCE: {
+        auto refPtr = std::static_pointer_cast<RefType>(_pType);
+        return traverseRefType(refPtr);
+    }
     }
 
-    ENTER(Type, _type);
+    ENTER(Type, _pType);
     EXIT();
 }
 
-bool Visitor::traverseTypeType(TypeType &_type) {
-    ENTER(TypeType, _type);
-    TRAVERSE(TypeDeclaration, TypeTypeDecl, _type.getDeclaration(), _type, TypeType, setDeclaration);
+bool Visitor::traverseTypeType(std::shared_ptr<TypeType> &_pType) {
+    ENTER(TypeType, _pType);  
+    TRAVERSE(TypeDeclaration, TypeTypeDecl, _pType->getDeclaration(), _pType, TypeType, setDeclaration);
     EXIT();
 }
 
-bool Visitor::traverseEnumType(EnumType &_type) {
-    ENTER(EnumType, _type);
-    TRAVERSE_COL(EnumValue, EnumValueDecl, _type.getValues());
+bool Visitor::traverseEnumType(std::shared_ptr<EnumType> &_pType) {
+    ENTER(EnumType, _pType);
+    auto valuesPtr = std::make_shared<Collection<EnumValue>>(_pType->getValues());
+    TRAVERSE_COL(EnumValue, EnumValueDecl, valuesPtr);
     EXIT();
 }
 
-bool Visitor::traverseStructType(StructType &_type) {
-    ENTER(StructType, _type);
-    TRAVERSE_COL(NamedValue, StructFieldDeclNameOrd, _type.getNamesOrd());
-    TRAVERSE_COL(NamedValue, StructFieldDeclTypeOrd, _type.getTypesOrd());
-    TRAVERSE_COL(NamedValue, StructFieldDeclNameSet, _type.getNamesSet());
+bool Visitor::traverseStructType(std::shared_ptr<StructType> &_pType) {
+    ENTER(StructType, _pType);
+    auto namesOrdPtr = std::make_shared<Collection<NamedValue>>(_pType->getNamesOrd());
+    auto typesOrdPtr = std::make_shared<Collection<NamedValue>>(_pType->getTypesOrd());
+    auto namesSetPtr = std::make_shared<Collection<NamedValue>>(_pType->getNamesSet());
+    TRAVERSE_COL(NamedValue, StructFieldDeclNameOrd, namesOrdPtr);
+    TRAVERSE_COL(NamedValue, StructFieldDeclTypeOrd, typesOrdPtr);
+    TRAVERSE_COL(NamedValue, StructFieldDeclNameSet, namesSetPtr);
     EXIT();
 }
 
-bool Visitor::traverseUnionType(UnionType &_type) {
-    ENTER(UnionType, _type);
-    TRAVERSE_COL(UnionConstructorDeclaration, UnionConstructorDecl, _type.getConstructors());
+bool Visitor::traverseUnionType(std::shared_ptr<UnionType> &_pType) {
+    ENTER(UnionType, _pType);
+    auto constructorsPtr = std::make_shared<Collection<UnionConstructorDeclaration>>(_pType->getConstructors());
+    TRAVERSE_COL(UnionConstructorDeclaration, UnionConstructorDecl, constructorsPtr);
     EXIT();
 }
 
-bool Visitor::traverseArrayType(ArrayType &_type) {
-    ENTER(ArrayType, _type);
-    TRAVERSE(Type, ArrayDimType, _type.getDimensionType(), _type, ArrayType, setDimensionType);
-    TRAVERSE(Type, ArrayBaseType, _type.getBaseType(), _type, DerivedType, setBaseType);
+bool Visitor::traverseArrayType(std::shared_ptr<ArrayType> &_pType) {
+    ENTER(ArrayType, _pType);
+    TRAVERSE(Type, ArrayDimType, _pType->getDimensionType(), _pType, ArrayType, setDimensionType);
+    auto pTypeTr = std::static_pointer_cast<DerivedType>(_pType);
+    TRAVERSE(Type, ArrayBaseType, _pType->getBaseType(), pTypeTr, DerivedType, setBaseType);
     EXIT();
 }
 
-bool Visitor::traverseSetType(SetType &_type) {
-    ENTER(SetType, _type);
-    TRAVERSE(Type, SetBaseType, _type.getBaseType(), _type, DerivedType, setBaseType);
+bool Visitor::traverseSetType(std::shared_ptr<SetType> &_pType) {
+    ENTER(SetType, _pType);
+    auto pTypeTr = std::static_pointer_cast<DerivedType>(_pType);
+    TRAVERSE(Type, SetBaseType, _pType->getBaseType(), pTypeTr, DerivedType, setBaseType);
     EXIT();
 }
 
-bool Visitor::traverseMapType(MapType &_type) {
-    ENTER(MapType, _type);
-    TRAVERSE(Type, MapIndexType, _type.getIndexType(), _type, MapType, setIndexType);
-    TRAVERSE(Type, MapBaseType, _type.getBaseType(), _type, DerivedType, setBaseType);
+bool Visitor::traverseMapType(std::shared_ptr<MapType> &_pType) {
+    ENTER(MapType, _pType);
+    TRAVERSE(Type, MapIndexType, _pType->getIndexType(), _pType, MapType, setIndexType);
+    auto pTypeTr = std::static_pointer_cast<DerivedType>(_pType);
+    TRAVERSE(Type, MapBaseType, _pType->getBaseType(), pTypeTr, DerivedType, setBaseType);
     EXIT();
 }
 
-bool Visitor::traverseListType(ListType &_type) {
-    ENTER(ListType, _type);
-    TRAVERSE(Type, ListBaseType, _type.getBaseType(), _type, DerivedType, setBaseType);
+bool Visitor::traverseListType(std::shared_ptr<ListType> &_pType) {
+    ENTER(ListType, _pType);
+    auto pTypeTr = std::static_pointer_cast<DerivedType>(_pType);
+    TRAVERSE(Type, ListBaseType, _pType->getBaseType(), pTypeTr, DerivedType, setBaseType);
     EXIT();
 }
 
-bool Visitor::traverseRefType(RefType &_type) {
-    ENTER(RefType, _type);
-    TRAVERSE(Type, RefBaseType, _type.getBaseType(), _type, DerivedType, setBaseType);
+bool Visitor::traverseRefType(std::shared_ptr<RefType> &_pType) {
+    ENTER(RefType, _pType);
+    auto pTypeTr = std::static_pointer_cast<DerivedType>(_pType);
+    TRAVERSE(Type, RefBaseType, _pType->getBaseType(), pTypeTr, DerivedType, setBaseType);
     EXIT();
 }
 
-bool Visitor::traverseSubtype(Subtype &_type) {
-    ENTER(Subtype, _type);
-    TRAVERSE(NamedValue, SubtypeParam, _type.getParam(), _type, Subtype, setParam);
-    TRAVERSE(Expression, SubtypeCond, _type.getExpression(), _type, Subtype, setExpression);
+bool Visitor::traverseSubtype(std::shared_ptr<Subtype> &_pType) {
+    ENTER(Subtype, _pType);
+    TRAVERSE(NamedValue, SubtypeParam, _pType->getParam(), _pType, Subtype, setParam);
+    TRAVERSE(Expression, SubtypeCond, _pType->getExpression(), _pType, Subtype, setExpression);
     EXIT();
 }
 
-bool Visitor::traverseRange(Range &_type) {
-    ENTER(Range, _type);
-    TRAVERSE(Expression, RangeMin, _type.getMin(), _type, Range, setMin);
-    TRAVERSE(Expression, RangeMax, _type.getMax(), _type, Range, setMax);
+bool Visitor::traverseRange(std::shared_ptr<Range> &_pType) {
+    ENTER(Range, _pType);
+    TRAVERSE(Expression, RangeMin, _pType->getMin(), _pType, Range, setMin);
+    TRAVERSE(Expression, RangeMax, _pType->getMax(), _pType, Range, setMax);
     EXIT();
 }
 
-bool Visitor::traversePredicateType(PredicateType &_type) {
-    ENTER(PredicateType, _type);
-    TRAVERSE_COL(Param, PredicateTypeInParam, _type.getInParams());
+bool Visitor::traversePredicateType(std::shared_ptr<PredicateType> &_pType) {
+    ENTER(PredicateType, _pType);
+    auto paramsPtr = std::make_shared<Collection<Param>>(_pType->getInParams());
+    TRAVERSE_COL(Param, PredicateTypeInParam, paramsPtr);
 
-    for (size_t i = 0; i < _type.getOutParams().size(); ++i) {
-        Branch &br = *_type.getOutParams().get(i);
+    for (size_t i = 0; i < _pType->getOutParams().size(); ++i) {
+        auto br = std::make_shared<Branch>(_pType->getOutParams().get(i));
+        auto brCol = std::make_shared<Collection<Param>>(_pType->getOutParams().get(i));
 
-        TRAVERSE(Label, PredicateTypeBranchLabel, br.getLabel(), br, Branch, setLabel);
-        TRAVERSE(Formula, PredicateTypeBranchPreCondition, br.getPreCondition(), br, Branch, setPreCondition);
-        TRAVERSE(Formula, PredicateTypeBranchPostCondition, br.getPostCondition(), br, Branch, setPostCondition);
-        TRAVERSE_COL(Param, PredicateTypeOutParam, br);
+        TRAVERSE(Label, PredicateTypeBranchLabel, br->getLabel(), br, Branch, setLabel);
+        TRAVERSE(Formula, PredicateTypeBranchPreCondition, br->getPreCondition(), br, Branch, setPreCondition);
+        TRAVERSE(Formula, PredicateTypeBranchPostCondition, br->getPostCondition(), br, Branch, setPostCondition);
+        TRAVERSE_COL(Param, PredicateTypeOutParam, brCol);
     }
 
-    TRAVERSE(Formula, PredicateTypePreCondition, _type.getPreCondition(), _type, PredicateType, setPreCondition);
-    TRAVERSE(Formula, PredicateTypePostCondition, _type.getPostCondition(), _type, PredicateType, setPreCondition);
+    TRAVERSE(Formula, PredicateTypePreCondition, _pType->getPreCondition(), _pType, PredicateType, setPreCondition);
+    TRAVERSE(Formula, PredicateTypePostCondition, _pType->getPostCondition(), _pType, PredicateType, setPreCondition);
     EXIT();
 }
 
-bool Visitor::traverseParameterizedType(ParameterizedType &_type) {
-    ENTER(ParameterizedType, _type);
-    TRAVERSE_COL(NamedValue, ParameterizedTypeParam, _type.getParams());
-    TRAVERSE(Type, ParameterizedTypeBase, _type.getActualType(), _type, ParameterizedType, setActualType);
+bool Visitor::traverseParameterizedType(std::shared_ptr<ParameterizedType> &_pType) {
+    ENTER(ParameterizedType, _pType);
+    auto paramsPtr = std::make_shared<Collection<NamedValue>>(_pType->getParams());
+    TRAVERSE_COL(NamedValue, ParameterizedTypeParam, paramsPtr);
+    TRAVERSE(Type, ParameterizedTypeBase, _pType->getActualType(), _pType, ParameterizedType, setActualType);
     EXIT();
 }
 
-bool Visitor::traverseNamedReferenceType(NamedReferenceType &_type) {
-    ENTER(NamedReferenceType, _type);
-    TRAVERSE_COL(Expression, NamedTypeArg, _type.getArgs());
+bool Visitor::traverseNamedReferenceType(std::shared_ptr<NamedReferenceType> &_pType) {
+    ENTER(NamedReferenceType, _pType);
+    auto argsPtr = std::make_shared< Collection<Expression>>(_pType->getArgs());
+    TRAVERSE_COL(Expression, NamedTypeArg, argsPtr);
     EXIT();
 }
 
-bool Visitor::traverseDerivedType(DerivedType &_type) {
+bool Visitor::traverseDerivedType(std::shared_ptr<DerivedType> &_pType) {
     return true;
 }
 
 // Named.
 
-bool Visitor::traverseNamedValue(NamedValue &_val) {
-    switch (_val.getKind()) {
-        case NamedValue::ENUM_VALUE:
-            return traverseEnumValue((EnumValue &)_val);
-        case NamedValue::PREDICATE_PARAMETER:
-            return traverseParam((Param &)_val);
+bool Visitor::traverseNamedValue(std::shared_ptr<NamedValue> & _pVal) {
+    switch (_pVal->getKind()) {
+        case NamedValue::ENUM_VALUE: {
+            auto enumPtr = std::static_pointer_cast<EnumValue>(_pVal);
+            return traverseEnumValue(enumPtr);
+            }
+        case NamedValue::PREDICATE_PARAMETER: {
+            auto paramPtr = std::static_pointer_cast<Param>(_pVal);
+            return traverseParam(paramPtr);
+            }
         case NamedValue::LOCAL:
-        case NamedValue::GLOBAL:
-            return traverseVariable((Variable &)_val);
+        case NamedValue::GLOBAL: {
+            auto variablePtr = std::static_pointer_cast<Variable>(_pVal);
+            return traverseVariable(variablePtr);
+        }
     }
 
-    ENTER(NamedValue, _val);
-    TRAVERSE(Type, NamedValueType, _val.getType(), _val, NamedValue, setType);
+    ENTER(NamedValue, _pVal);
+    TRAVERSE(Type, NamedValueType, _pVal->getType(), _pVal, NamedValue, setType);
     EXIT();
 }
 
-bool Visitor::traverseEnumValue(EnumValue &_val) {
-    ENTER(EnumValue, _val);
-    if (getRole() != R_EnumValueDecl)
-        TRAVERSE(Type, EnumValueType, _val.getType(), _val, NamedValue, setType);
+bool Visitor::traverseEnumValue(std::shared_ptr<EnumValue> &_pVal) {
+    ENTER(EnumValue, _pVal);
+    if (getRole() != R_EnumValueDecl) {
+        auto pValTr = std::static_pointer_cast<NamedValue>(_pVal);
+        TRAVERSE(Type, EnumValueType, _pVal->getType(), pValTr, NamedValue, setType);
+    }
     EXIT();
 }
 
-bool Visitor::traverseParam(Param &_val) {
-    ENTER(Param, _val);
-    TRAVERSE(Type, ParamType, _val.getType(), _val, NamedValue, setType);
+bool Visitor::traverseParam(std::shared_ptr<Param> &_pVal) {
+    ENTER(Param, _pVal);
+    auto pValTr = std::static_pointer_cast<NamedValue>(_pVal);
+    TRAVERSE(Type, ParamType, _pVal->getType(), pValTr, NamedValue, setType);
     EXIT();
 }
 
-bool Visitor::traverseVariable(Variable &_val) {
-    ENTER(Variable, _val);
-    TRAVERSE(Type, VariableType, _val.getType(), _val, NamedValue, setType);
+bool Visitor::traverseVariable(std::shared_ptr<Variable> &_pVal) {
+    ENTER(Variable, _pVal);
+    auto pValTr = std::static_pointer_cast<NamedValue>(_pVal);
+    TRAVERSE(Type, VariableType, _pVal->getType(), pValTr, NamedValue, setType);
     EXIT();
 }
 
@@ -678,10 +762,10 @@ bool Visitor::traverseSend(Send &_stmt) {
     EXIT();
 }
 
-bool Visitor::traverseTypeDeclaration(TypeDeclaration &_stmt) {
-    ENTER(TypeDeclaration, _stmt);
-    TRAVERSE(Label, StmtLabel, _stmt.getLabel(), _stmt, Statement, setLabel);
-    TRAVERSE(Type, TypeDeclBody, _stmt.getType(), _stmt, TypeDeclaration, setType);
+bool Visitor::traverseTypeDeclaration(std::shared_ptr<TypeDeclaration> &_pStmt) {
+    ENTER(TypeDeclaration, _pStmt);
+    TRAVERSE(Label, StmtLabel, _pStmt->getLabel(), _pStmt, Statement, setLabel);
+    TRAVERSE(Type, TypeDeclBody, _pStmt->getType(), _pStmt, TypeDeclaration, setType);
     EXIT();
 }
 
