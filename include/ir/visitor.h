@@ -34,27 +34,27 @@ public:
 template<typename _Node, typename _Member, void (_Node::*_Method)(const std::shared_ptr<_Member> &)>
 class NodeSetterImpl : public NodeSetter {
 public:
-    NodeSetterImpl(std::shared_ptr<_Node> &_pNode) : m_pNode(_pNode) {}
+    NodeSetterImpl(const std::shared_ptr<_Node> &_pNode) : m_pNode(_pNode) {}
 
     virtual void set(const NodePtr &_pValue) {
         (m_pNode->*_Method)(std::static_pointer_cast<_Member>(_pValue));
     }
 
 protected:
-    std::shared_ptr<_Node> &m_pNode;
+    const std::shared_ptr<_Node> &m_pNode;
 };
 
 template<class _Node, class _Base>
 class ItemSetterImpl : public NodeSetter {
 public:
-    ItemSetterImpl(std::shared_ptr<Collection<_Node, _Base>> &_pNodes, size_t _cIndex) : m_pNodes(_pNodes), m_cIndex(_cIndex) {}
+    ItemSetterImpl(Collection<_Node, _Base> &_pNodes, size_t _cIndex) : m_pNodes(_pNodes), m_cIndex(_cIndex) {}
 
     virtual void set(const NodePtr &_pValue) {
         m_pNodes->set(m_cIndex, std::static_pointer_cast<_Node>(_pValue));
     }
 
 protected:
-    std::shared_ptr<Collection<_Node, _Base>> &m_pNodes;
+    Collection<_Node, _Base> &m_pNodes;
     size_t m_cIndex;
 };
 
@@ -91,8 +91,8 @@ public:
         }
     };
 
-    virtual bool traverseNode(NodePtr &_node);
-    template<class _Node, class _Base> bool traverseCollection(std::shared_ptr< Collection<_Node, _Base>>& _pNodes);
+    virtual bool traverseNode(const NodePtr &_node);
+    template<class _Node, class _Base> bool traverseCollection(Collection<_Node, _Base> &_pNodes);
     virtual bool visitNode(NodePtr &_node);
     bool walkUpFromNode(NodePtr &_node);
 
@@ -172,25 +172,25 @@ private:
     int m_order;
 
 protected:
-    virtual bool _traverseAnonymousPredicate(AnonymousPredicate &_decl);
-    virtual bool _traverseDeclarationGroup(DeclarationGroup &_decl);
+    virtual bool _traverseAnonymousPredicate(const std::shared_ptr<AnonymousPredicate> &_pDecl);
+    virtual bool _traverseDeclarationGroup(const std::shared_ptr<DeclarationGroup> &_pDecl);
 };
 
 template<class _Node, class _Base>
-bool Visitor::traverseCollection(std::shared_ptr<Collection<_Node, _Base>> &_pNodes) {
+bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
 
-    for (size_t i = 0; i < _pNodes->size(); ++i) {
-        if (_pNodes->get(i)) {
+    for (size_t i = 0; i < _pNodes.size(); ++i) {
+        if (_pNodes.get(i)) {
             ItemSetterImpl<_Node, _Base> setter(_pNodes, i); 
             Loc &loc = m_path.back();
 
-            loc = Loc(_pNodes->get(i), loc.type, loc.role, loc.roleHandler, loc.roleHandlerPost,
+            loc = Loc(_pNodes.get(i), loc.type, loc.role, loc.roleHandler, loc.roleHandlerPost,
                     &setter, loc.walkUp);
             loc.cPosInCollection = i;
             loc.bPartOfCollection = true;
             loc.bLastInCollection = i + 1 == _pNodes.size();
 
-            if (!traverseNode(_pNodes->get(i)))
+            if (!traverseNode(_pNodes.get(i)))
                 return false;
         }
     }
@@ -276,8 +276,8 @@ bool Visitor::traverseCollection(std::shared_ptr<Collection<_Node, _Base>> &_pNo
     do {                                                                            \
         if (isStopped())                                                            \
             return false;                                                           \
-        if (_PARAM && !(_PARAM->empty())) {                                                    \
-            auto nodePtr = std::static_pointer_cast<Node>(_PARAM);                         \
+        if (!(_PARAM).empty()) {                                                    \
+            auto nodePtr = std::make_shared<Node>(_PARAM);                         \
             Ctx ctx(this, nodePtr, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,    \
                 &Visitor::handle##_ROLE##Post, nullptr);                               \
             if (!traverseCollection(_PARAM))                                        \
