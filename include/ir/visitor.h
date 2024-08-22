@@ -31,70 +31,70 @@ namespace ir {
         virtual void set(const NodePtr& _pValue) {}
     };
 
-    template<typename _Node, typename _Member, void (_Node::* _Method)(const std::shared_ptr<_Member>&)>
-    class NodeSetterImpl : public NodeSetter {
-    public:
-        NodeSetterImpl(const std::shared_ptr<_Node>& _pNode) : m_pNode(_pNode) {}
+template<typename _Node, typename _Member, void (_Node::*_Method)(const std::shared_ptr<_Member> &)>
+class NodeSetterImpl : public NodeSetter {
+public:
+    NodeSetterImpl(const std::shared_ptr<_Node> &_pNode) : m_pNode(_pNode) {}
 
-        virtual void set(const NodePtr& _pValue) {
-            (m_pNode->*_Method)(std::static_pointer_cast<_Member>(_pValue));
-        }
+    virtual void set(const NodePtr &_pValue) {
+        (m_pNode->*_Method)(std::static_pointer_cast<_Member>(_pValue));
+    }
 
-    protected:
-        const std::shared_ptr<_Node>& m_pNode;
+protected:
+    const std::shared_ptr<_Node> &m_pNode;
+};
+
+template<class _Node, class _Base>
+class ItemSetterImpl : public NodeSetter {
+public:
+    ItemSetterImpl(Collection<_Node, _Base> &_pNodes, size_t _cIndex) : m_pNodes(_pNodes), m_cIndex(_cIndex) {}
+
+    virtual void set(const NodePtr &_pValue) {
+        m_pNodes->set(m_cIndex, std::static_pointer_cast<_Node>(_pValue));
+    }
+
+protected:
+    Collection<_Node, _Base> &m_pNodes;
+    size_t m_cIndex;
+};
+
+class Visitor {
+public:
+    using RoleHandler = int (Visitor::*)(NodePtr &_node);
+    using NodeWalkUp = bool (Visitor::*)(NodePtr &_node);
+
+    enum { 
+        PARENTS_FIRST,
+        CHILDREN_FIRST,
     };
-
-    template<class _Node, class _Base>
-    class ItemSetterImpl : public NodeSetter {
-    public:
-        ItemSetterImpl(Collection<_Node, _Base>& _pNodes, size_t _cIndex) : m_pNodes(_pNodes), m_cIndex(_cIndex) {}
-
-        virtual void set(const NodePtr& _pValue) {
-            m_pNodes->set(m_cIndex, std::static_pointer_cast<_Node>(_pValue));
-        }
-
-    protected:
-        Collection<_Node, _Base>& m_pNodes;
-        size_t m_cIndex;
-    };
-
-    class Visitor {
-    public:
-        using RoleHandler = int (Visitor::*)(NodePtr& _node);
-        using NodeWalkUp = bool (Visitor::*)(NodePtr& _node);
-
-        enum {
-            PARENTS_FIRST,
-            CHILDREN_FIRST,
-        };
 
         Visitor(int _order = PARENTS_FIRST) : m_bStopped(false), m_order(_order) {}
         virtual ~Visitor() {}
 
-        struct Loc {
-            NodePtr pNode; // Never NULL.
-            NodeType type;
-            NodeRole role;
-            RoleHandler roleHandler;
-            RoleHandler roleHandlerPost;
-            NodeSetter* pSetter;
-            NodeWalkUp walkUp;
-            bool bPartOfCollection, bLastInCollection;
-            size_t cPosInCollection;
+    struct Loc {
+        NodePtr pNode; // Never NULL.
+        NodeType type;
+        NodeRole role;
+        RoleHandler roleHandler;
+        RoleHandler roleHandlerPost;
+        NodeSetter *pSetter;
+        NodeWalkUp walkUp;
+        bool bPartOfCollection, bLastInCollection;
+        size_t cPosInCollection;
 
-            Loc(NodePtr& _pNode, NodeType _type, NodeRole _role, RoleHandler _roleHandler = nullptr,
-                RoleHandler _roleHandlerPost = nullptr, NodeSetter* _pSetter = nullptr, NodeWalkUp _walkUp = nullptr) :
-                pNode(_pNode), type(_type), role(_role), roleHandler(_roleHandler), roleHandlerPost(_roleHandlerPost),
-                pSetter(_pSetter), walkUp(_walkUp), bPartOfCollection(false),
-                bLastInCollection(false), cPosInCollection(0)
-            {
-            }
-        };
+        Loc(NodePtr &_pNode, NodeType _type, NodeRole _role, RoleHandler _roleHandler = nullptr,
+                RoleHandler _roleHandlerPost = nullptr, NodeSetter *_pSetter = nullptr, NodeWalkUp _walkUp = nullptr) :
+            pNode(_pNode), type(_type), role(_role), roleHandler(_roleHandler), roleHandlerPost(_roleHandlerPost),
+            pSetter(_pSetter), walkUp(_walkUp), bPartOfCollection(false),
+            bLastInCollection(false), cPosInCollection(0)
+        {
+        }
+    };
 
-        virtual bool traverseNode(const NodePtr& _node);
-        template<class _Node, class _Base> bool traverseCollection(Collection<_Node, _Base>& _pNodes);
-        virtual bool visitNode(NodePtr& _node);
-        bool walkUpFromNode(NodePtr& _node);
+    virtual bool traverseNode(const NodePtr &_node);
+    template<class _Node, class _Base> bool traverseCollection(Collection<_Node, _Base> &_pNodes);
+    virtual bool visitNode(NodePtr &_node);
+    bool walkUpFromNode(NodePtr &_node);
 
 #define NODE(_NODE, _PARENT)                            \
         bool walkUpFrom##_NODE(NodePtr &_pNode) {           \
@@ -122,12 +122,12 @@ namespace ir {
         struct Ctx {
             Visitor* pVisitor;
 
-            Ctx(Visitor* _pVisitor, NodePtr& _pNode, NodeType _type, NodeRole _role,
+        Ctx(Visitor *_pVisitor, NodePtr &_pNode, NodeType _type, NodeRole _role,
                 RoleHandler _roleHandler = nullptr, RoleHandler _roleHandlerPost = nullptr,
-                NodeSetter* _pSetter = nullptr, NodeWalkUp _walkUp = nullptr)
-                : pVisitor(_pVisitor)
-            {
-                pVisitor->m_path.push_back(Loc(_pNode, _type, _role, _roleHandler, _roleHandlerPost,
+                NodeSetter *_pSetter = nullptr, NodeWalkUp _walkUp = nullptr)
+            : pVisitor(_pVisitor)
+        {
+            pVisitor->m_path.push_back(Loc(_pNode, _type, _role, _roleHandler, _roleHandlerPost,
                     _pSetter, _walkUp));
             }
 
@@ -139,28 +139,28 @@ namespace ir {
         friend struct Ctx;
         std::list<Loc> m_path;
 
-        size_t getDepth() const { return m_path.size(); }
-        NodePtr& getNode() { return m_path.back().pNode; }
-        RoleHandler getRoleHandler(bool _bPreVisit) { return m_path.empty() ? nullptr : (_bPreVisit ? m_path.back().roleHandler : m_path.back().roleHandlerPost); }
-        NodeWalkUp getWalkUp() { return m_path.empty() ? nullptr : m_path.back().walkUp; }
-        NodeSetter* getNodeSetter() { return m_path.empty() ? nullptr : m_path.back().pSetter; }
-        NodeRole getRole() { return m_path.empty() ? R_TopLevel : m_path.back().role; }
-        Loc& getLoc() { return m_path.back(); }
+    size_t getDepth() const { return m_path.size(); }
+    NodePtr &getNode() { return m_path.back().pNode; }
+    RoleHandler getRoleHandler(bool _bPreVisit) { return m_path.empty() ? nullptr : (_bPreVisit ? m_path.back().roleHandler : m_path.back().roleHandlerPost); }
+    NodeWalkUp getWalkUp() { return m_path.empty() ? nullptr : m_path.back().walkUp; }
+    NodeSetter *getNodeSetter() { return m_path.empty() ? nullptr : m_path.back().pSetter; }
+    NodeRole getRole() { return m_path.empty() ? R_TopLevel : m_path.back().role; }
+    Loc &getLoc() { return m_path.back(); }
 
-        int callRoleHandler(bool _bPreVisit) {
-            return getRoleHandler(_bPreVisit) == nullptr ? 0 : (this->*getRoleHandler(_bPreVisit))(getNode());
-        }
+    int callRoleHandler(bool _bPreVisit) {
+        return getRoleHandler(_bPreVisit) == nullptr ? 0 : (this->*getRoleHandler(_bPreVisit))(getNode());
+    }
 
-        NodePtr getParent();
+    NodePtr getParent();
 
-        bool callWalkUp() {
-            return getWalkUp() == nullptr ? true : (this->*getWalkUp())(getNode());
-        }
+    bool callWalkUp() {
+        return getWalkUp() == nullptr ? true : (this->*getWalkUp())(getNode());
+    }
 
-        void callSetter(const NodePtr& _pNewNode) {
-            if (getNodeSetter() != nullptr)
-                getNodeSetter()->set(_pNewNode);
-        }
+    void callSetter(const NodePtr &_pNewNode) {
+        if (getNodeSetter() != nullptr)
+            getNodeSetter()->set(_pNewNode);
+    }
 
         void stop() { m_bStopped = true; }
 
@@ -171,29 +171,29 @@ namespace ir {
         bool m_bStopped;
         int m_order;
 
-    protected:
-        virtual bool _traverseAnonymousPredicate(const std::shared_ptr<AnonymousPredicate>& _pDecl);
-        virtual bool _traverseDeclarationGroup(const std::shared_ptr<DeclarationGroup>& _pDecl);
-    };
+protected:
+    virtual bool _traverseAnonymousPredicate(const std::shared_ptr<AnonymousPredicate> &_pDecl);
+    virtual bool _traverseDeclarationGroup(const std::shared_ptr<DeclarationGroup> &_pDecl);
+};
 
-    template<class _Node, class _Base>
-    bool Visitor::traverseCollection(Collection<_Node, _Base>& _pNodes) {
+template<class _Node, class _Base>
+bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
 
-        for (size_t i = 0; i < _pNodes.size(); ++i) {
-            if (_pNodes.get(i)) {
-                ItemSetterImpl<_Node, _Base> setter(_pNodes, i);
-                Loc& loc = m_path.back();
+    for (size_t i = 0; i < _pNodes.size(); ++i) {
+        if (_pNodes.get(i)) {
+            ItemSetterImpl<_Node, _Base> setter(_pNodes, i); 
+            Loc &loc = m_path.back();
 
-                loc = Loc(_pNodes.get(i), loc.type, loc.role, loc.roleHandler, loc.roleHandlerPost,
+            loc = Loc(_pNodes.get(i), loc.type, loc.role, loc.roleHandler, loc.roleHandlerPost,
                     &setter, loc.walkUp);
-                loc.cPosInCollection = i;
-                loc.bPartOfCollection = true;
-                loc.bLastInCollection = i + 1 == _pNodes.size();
+            loc.cPosInCollection = i;
+            loc.bPartOfCollection = true;
+            loc.bLastInCollection = i + 1 == _pNodes.size();
 
-                if (!traverseNode(_pNodes.get(i)))
-                    return false;
-            }
+            if (!traverseNode(_pNodes.get(i)))
+                return false;
         }
+    }
 
         return true;
     }
