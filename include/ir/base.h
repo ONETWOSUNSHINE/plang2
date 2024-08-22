@@ -167,13 +167,13 @@ public:
     /// \param _c Index of element (zero-based).
     /// \return Pointer to element or NULL if index is out of bounds.
     _NodePtr get(size_t _c) const {
-        return _c < m_nodes.size() ? m_nodes[_c] : std::make_shared<_Node>();
+        return _c < m_nodes.size() ? m_nodes[_c] : nullptr;
     }
 
     /// Get last element of collection.
     /// \return Pointer to element or NULL if collection is empty.
     _NodePtr back() const {
-        return !m_nodes.empty() ? m_nodes.back() : std::make_shared<_Node>();
+        return !m_nodes.empty() ? m_nodes.back() : nullptr;
     }
 
     /// Add element to the collection.
@@ -330,15 +330,7 @@ public:
     }
 
     virtual NodePtr clone() const {
-        auto pCopy = std::make_shared<Collection>(*this);
-
-        pCopy->clear();
-
-        //for (const auto& node : this->m_nodes) {
-        //    auto copyNode = std::make_shared<_Node>(*node);
-        //    pCopy->m_nodes.push_back(copyNode);
-        //}
-
+        auto pCopy = std::make_shared<Collection>();
         pCopy->appendClones(*this);
         return pCopy;
     }
@@ -645,7 +637,7 @@ public:
 
     bool isUsed() const { return m_bUsed; }
     void setUsed(bool _bValue) { m_bUsed = _bValue; }
-    static void updateUsed(Node &_root);
+    static void updateUsed(NodePtr &_pRoot);
 
     virtual NodePtr clone() const {
         auto pCopy = std::make_shared<Param>(*this);
@@ -670,8 +662,7 @@ private:
         _Name() {}                                                                  \
         _Name(Collection<_Item> &_collection) : Collection<_Item>(_collection) {}   \
         virtual NodePtr clone() const {                                             \
-            auto pCopy = std::make_shared<_Name>(*this);                            \
-            pCopy->clear();                                                         \
+            auto pCopy = std::make_shared<_Name>();                                 \
             pCopy->appendClones(*this);                                             \
             return pCopy;                                                           \
         }                                                                           \
@@ -820,8 +811,7 @@ public:
     virtual bool isBlockLike() const { return true; }
 
     virtual NodePtr clone() const {
-        auto pCopy = std::make_shared<Block>(*this);
-        pCopy->clear();
+        auto pCopy = std::make_shared<Block>();
         pCopy->appendClones(*this);
         return pCopy;
     }
@@ -842,8 +832,7 @@ public:
     virtual bool isBlockLike() const { return false; }
 
     virtual NodePtr clone() const {
-        auto pCopy = std::make_shared<ParallelBlock>(*this);
-        pCopy->clear();
+        auto pCopy = std::make_shared<ParallelBlock>();
         pCopy->appendClones(*this);
         return pCopy;
     }
