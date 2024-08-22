@@ -14,19 +14,18 @@ public:
         m_pContainer(_pContainer), m_bRoot(true)
     {}
 
-    bool visitNode(ir::Node& _node) {
+    bool visitNode(ir::NodePtr& _pNode) {
         if (m_bRoot) {
             m_bRoot = false;
             return true;
         }
-        auto _nodePtr = std::make_shared<ir::Node>(_node);
-        m_pContainer->add(_nodePtr);
+        m_pContainer->add(_pNode);
         return false;
     }
 
     ir::NodesPtr run(const ir::NodePtr _pNode) {
         if (_pNode && m_pContainer)
-            traverseNode(*_pNode);
+            traverseNode(_pNode);
         return m_pContainer;
     }
 
@@ -68,14 +67,14 @@ TypePtr resolveBaseType(const TypePtr &_pType) {
 
     while (pType) {
         if (pType->getKind() == Type::NAMED_REFERENCE) {
-            NamedReferenceTypePtr pRef = std::dynamic_pointer_cast<NamedReferenceType>(pType);
+            auto pRef = std::static_pointer_cast<NamedReferenceType>(pType);
 
             if (pRef->getDeclaration() && pRef->getDeclaration()->getType())
                 pType = pRef->getDeclaration()->getType();
             else
                 break;
         } else if (pType->getKind() == Type::PARAMETERIZED) {
-            pType = std::dynamic_pointer_cast<ParameterizedType>(pType)->getActualType();
+            pType = std::static_pointer_cast<ParameterizedType>(pType)->getActualType();
         } else
             break;
     }
@@ -131,13 +130,13 @@ bool NamedValue::equals(const Node& _other) const {
         && _equals(getType(), other.getType());
 }
 
-void Param::updateUsed(Node &_root) {
+void Param::updateUsed(NodePtr &_pRoot) {
     struct Enumerator : public Visitor {
         std::set<NamedValuePtr> params;
 
-        virtual bool visitParam(Param &_param) {
-            _param.setUsed(false);
-            params.insert(std::static_pointer_cast<Param>(_param.shared_from_this()));
+        virtual bool visitParam(std::shared_ptr<Param> &_pParam) {
+            _pParam->setUsed(false);
+            params.insert(_pParam);
             return true;
         }
     };
@@ -145,15 +144,15 @@ void Param::updateUsed(Node &_root) {
     struct Updater : public Visitor {
         Enumerator enumerator;
 
-        void run(Node &_root) {
-            enumerator.traverseNode(_root);
-            traverseNode(_root);
+        void run(NodePtr &_pRoot) {
+            enumerator.traverseNode(_pRoot);
+            traverseNode(_pRoot);
         }
 
-        virtual bool visitVariableReference(VariableReference &_val) {
-            if (_val.getTarget() && _val.getTarget()->getKind() == NamedValue::PREDICATE_PARAMETER &&
-                enumerator.params.find(_val.getTarget()) != enumerator.params.end()) {
-                auto paramPtr = std::dynamic_pointer_cast<Param>(_val.getTarget());
+        virtual bool visitVariableReference(std::shared_ptr<VariableReference> &_pVal) {
+            if (_pVal->getTarget() && _pVal->getTarget()->getKind() == NamedValue::PREDICATE_PARAMETER &&
+                enumerator.params.find(_pVal->getTarget()) != enumerator.params.end()) {
+                auto paramPtr = std::static_pointer_cast<Param>(_pVal->getTarget());
                 if (paramPtr) {
                     paramPtr->setUsed(true);
                 }
@@ -162,7 +161,7 @@ void Param::updateUsed(Node &_root) {
         }
     } updater;
 
-    updater.run(_root);
+    updater.run(_pRoot);
 }
 
 
