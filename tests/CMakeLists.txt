@@ -38,7 +38,6 @@ set(SOURCES_ST
     ../src/generate_semantics.cpp
     ../src/generate_name.cpp
     ../src/verification_context.cpp
-    ../src/cvc3_solver.cpp
     ../src/typecheck/compact.cpp
     ../src/typecheck/eval.cpp
     ../src/typecheck/expand.cpp
@@ -52,6 +51,10 @@ set(SOURCES_ST
     ../src/typecheck/unify.cpp
     ../src/sort_module.cpp
 )
+
+if (CVC3 AND CVC3LIB_FOUND)
+    set(SOURCES_ST ${SOURCES_ST} ../src/cvc3_solver.cpp)
+endif()
 
 add_executable(${TARGET_ST} ${SOURCES_ST})
 
@@ -191,6 +194,7 @@ macro(run_pvs_tests FLAGS TESTS)
     endforeach()
 endmacro()
 
+if (CVC3 AND CVC3LIB_FOUND)
 macro(run_cvc3_tests FLAGS TESTS)
     foreach(TEST ${TESTS})
         add_test(${TEST}
@@ -201,6 +205,8 @@ macro(run_cvc3_tests FLAGS TESTS)
             ${FLAGS})
     endforeach()
 endmacro()
+
+endif()
 
 macro(run_indenting_stream_tests TESTS)
     foreach(TEST ${TESTS})
@@ -416,7 +422,9 @@ run_verification_tests("-f" "verification/conjunctive_normal_form.psrc")
 run_cond_tests("" "${TESTS_CONDITIONS}")
 run_vf_tests("-t1" "${TESTS_VERIFICATION}")
 run_pvs_tests("-t1" "${TESTS_PVS}")
+if (CVC3 AND CVC3LIB_FOUND)
 run_cvc3_tests("" "${TESTS_CVC3}")
+endif()
 run_ot_tr_tests("-t2" "${TESTS_TRASFORMATION_TAIL_RECURSION}")
 run_ot_pi_tests("-t2" "${TESTS_TRASFORMATION_PREDICATE_INLINING}")
 run_indenting_stream_tests("${TESTS_INDENTING_STREAM}")
