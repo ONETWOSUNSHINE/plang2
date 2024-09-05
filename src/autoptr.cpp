@@ -6,16 +6,7 @@
 
 template<class _Obj>
 void* Cloner::allocate(size_t _cSize, const void* _pOriginal) {
-    auto objPtr = std::make_shared<_Obj>();
-
-    m_cache[_getHandle(_pOriginal)] = objPtr;
-
-    return objPtr.get();
-}
-
-template<class _Obj>
-void* Cloner::allocate(size_t _cSize, std::shared_ptr<const _Obj>& _pOriginal) {
-    auto objPtr = std::make_shared<_Obj>();
+    auto objPtr = std::shared_ptr<void>(::new(_cSize));
 
     m_cache[_getHandle(_pOriginal)] = objPtr;
 
