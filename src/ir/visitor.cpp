@@ -18,11 +18,11 @@ NodePtr Visitor::getParent() {
     return (--i)->pNode;
 }
 
-bool Visitor::visitNode(ir::NodePtr &_pNode) {
+bool Visitor::visitNode(const ir::NodePtr &_pNode) {
     return true;
 }
 
-bool Visitor::walkUpFromNode(ir::NodePtr &_pNode) {
+bool Visitor::walkUpFromNode(const ir::NodePtr &_pNode) {
     return visitNode(_pNode);
 }
 

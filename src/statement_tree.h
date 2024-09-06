@@ -11,29 +11,31 @@
 
 namespace st {
 
-class StmtVertex : public Counted {
+using StmtVertexPtr = std::shared_ptr<class StmtVertex>;
+
+class StmtVertex : public std::enable_shared_from_this<StmtVertex> {
 public:
     StmtVertex(const ir::StatementPtr& _pStmt) :
         m_pStmt(_pStmt)
     {}
 
-    void setParent(const Auto<StmtVertex>& _pVertex) {
+    void setParent(const StmtVertexPtr& _pVertex) {
         m_pParent = _pVertex;
     }
 
-    Auto<StmtVertex>& getParent() {
+    StmtVertexPtr& getParent() {
         return m_pParent;
     }
 
-    Auto<StmtVertex> appendChild(const Auto<StmtVertex>& _pVertex) {
+    StmtVertexPtr appendChild(const StmtVertexPtr& _pVertex) {
         if (!_pVertex)
             return NULL;
         m_children.push_back(_pVertex);
-        _pVertex->setParent(this);
+        _pVertex->setParent(shared_from_this());
         return m_children.back();
     }
 
-    std::list<Auto<StmtVertex> >& getChildren() {
+    std::list<StmtVertexPtr>& getChildren() {
         return m_children;
     }
 
@@ -57,8 +59,8 @@ public:
 
 private:
     ir::StatementPtr m_pStmt;
-    Auto<StmtVertex> m_pParent;
-    std::list<Auto<StmtVertex> > m_children;
+    StmtVertexPtr m_pParent;
+    std::list<StmtVertexPtr> m_children;
 
     // if(E) A else B :
     // if (E) -> (A, B)
@@ -127,8 +129,6 @@ private:
     // A
     ir::StatementPtr mergeVariableDecl() const;
 };
-
-typedef Auto<StmtVertex> StmtVertexPtr;
 
 }
 

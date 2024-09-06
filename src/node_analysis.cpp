@@ -225,21 +225,27 @@ void getResults(const StatementPtr& _pStatement, ValuesSet& _container) {
 
     switch (_pStatement->getKind()) {
         case Statement::ASSIGNMENT:
-            collectValues(_pStatement.as<Assignment>()->getLValue(), _container);
+            collectValues(_pStatement->as<Assignment>()->getLValue(), _container);
             break;
         case Statement::BLOCK:
-        case Statement::PARALLEL_BLOCK:
-            for (size_t i = 0; i < _pStatement.as<Block>()->size(); ++i)
-                getResults(_pStatement.as<Block>()->get(i), _container);
+        case Statement::PARALLEL_BLOCK: {
+            const auto block = _pStatement->as<Block>();
+            for (size_t i = 0; i < block->size(); ++i)
+                getResults(block->get(i), _container);
+        }
             break;
-        case Statement::IF:
-            getResults(_pStatement.as<If>()->getBody(), _container);
-            getResults(_pStatement.as<If>()->getElse(), _container);
+        case Statement::IF: {
+            const auto _if = _pStatement->as<If>();
+            getResults(_if->getBody(), _container);
+            getResults(_if->getElse(), _container);
+        }
             break;
-        case Statement::CALL:
-            for (size_t i = 0; i < _pStatement.as<Call>()->getBranches().size(); ++i)
-                for (size_t j = 0; j < _pStatement.as<Call>()->getBranches().get(i)->size(); ++j)
-                    collectValues(_pStatement.as<Call>()->getBranches().get(i)->get(j), _container);
+        case Statement::CALL: {
+            const auto call = _pStatement->as<Call>();
+            for (size_t i = 0; i < call->getBranches().size(); ++i)
+                for (size_t j = 0; j < call->getBranches().get(i)->size(); ++j)
+                    collectValues(call->getBranches().get(i)->get(j), _container);
+        }
             break;
     }
 }
@@ -250,27 +256,32 @@ void getArgs(const StatementPtr& _pStatement, ValuesSet& _container) {
 
     switch (_pStatement->getKind()) {
         case Statement::ASSIGNMENT:
-            collectValues(_pStatement.as<Assignment>()->getExpression(), _container);
+            collectValues(_pStatement->as<Assignment>()->getExpression(), _container);
             break;
         case Statement::BLOCK: {
+            const auto block = _pStatement->as<Block>();
             ValuesSet args, results;
             getResults(_pStatement, results);
-            for (size_t i = 0; i < _pStatement.as<Block>()->size(); ++i)
-                getArgs(_pStatement.as<Block>()->get(i), args);
+            for (size_t i = 0; i < block->size(); ++i)
+                getArgs(block->get(i), args);
             std::set_difference(args.begin(), args.end(), results.begin(), results.end(), std::inserter(_container, _container.end()));
             break;
         }
-        case Statement::PARALLEL_BLOCK:
-            for (size_t i = 0; i < _pStatement.as<ParallelBlock>()->size(); ++i)
-                getArgs(_pStatement.as<ParallelBlock>()->get(i), _container);
+        case Statement::PARALLEL_BLOCK: {
+            const auto block = _pStatement->as<ParallelBlock>();
+            for (size_t i = 0; i < block->size(); ++i)
+                getArgs(block->get(i), _container);
+        }
             break;
-        case Statement::IF:
-            collectValues(_pStatement.as<If>()->getArg(), _container);
-            getArgs(_pStatement.as<If>()->getBody(), _container);
-            getArgs(_pStatement.as<If>()->getElse(), _container);
+        case Statement::IF: {
+            const auto _if = _pStatement->as<If>();
+            collectValues(_if->getArg(), _container);
+            getArgs(_if->getBody(), _container);
+            getArgs(_if->getElse(), _container);
+        }
             break;
         case Statement::CALL:
-            collectValues(&_pStatement.as<Call>()->getArgs(), _container);
+            collectValues(&_pStatement->as<Call>()->getArgs(), _container);
             break;
     }
 }
@@ -305,10 +316,10 @@ StatementPtr extractCallArguments(const CallPtr& _pCall) {
         return NULL;
 
     const Call& call = *_pCall;
-    MultiassignmentPtr pMA = new Multiassignment();
+    const auto pMA = std::make_shared<Multiassignment>();
 
     for (size_t i = 0; i < call.getArgs().size(); ++i) {
-        pMA->getLValues().add(new VariableReference(new NamedValue(L"",
+        pMA->getLValues().add(std::make_shared<VariableReference>(std::make_shared<NamedValue>(L"",
             call.getArgs().get(i)->getType())));
         pMA->getExpressions().add(call.getArgs().get(i));
     }
@@ -322,7 +333,7 @@ void getArgsMap(const FormulaCall &_call, ArgsMap& _args) {
 }
 
 void getArgsMap(const FunctionCall &_call, ArgsMap& _args) {
-    PredicateTypePtr pCallType = _call.getPredicate()->getType().as<PredicateType>();
+    PredicateTypePtr pCallType = _call.getPredicate()->getType()->as<PredicateType>();
     for (size_t i = 0; i < _call.getArgs().size(); ++i)
         _args.addExpression(*pCallType->getInParams().get(i), _call.getArgs().get(i));
 }
@@ -341,14 +352,14 @@ void getArgsMap(const Call &_call, ArgsMap& _args, T _pred) {
 
 void getArgsMap(const Call &_call, ArgsMap& _args) {
     if (_call.getPredicate()->getKind() == Expression::PREDICATE)
-        getArgsMap(_call, _args, *_call.getPredicate().as<PredicateReference>()->getTarget());
+        getArgsMap(_call, _args, *_call.getPredicate()->as<PredicateReference>()->getTarget());
     else
-        getArgsMap(_call, _args, *_call.getPredicate()->getType().as<PredicateType>());
+        getArgsMap(_call, _args, *_call.getPredicate()->getType()->as<PredicateType>());
 }
 
 bool isRecursiveCall(const ir::CallPtr& _pCall, const ir::PredicatePtr& _pPred) {
     return _pPred && _pCall && _pCall->getPredicate() && _pCall->getPredicate()->getKind() == Expression::PREDICATE
-        && _pCall->getPredicate().as<PredicateReference>()->getTarget() == _pPred;
+        && _pCall->getPredicate()->as<PredicateReference>()->getTarget() == _pPred;
 }
 
 ir::ExpressionPtr generalize(const ExpressionPtr& _pExpr) {
@@ -358,7 +369,7 @@ ir::ExpressionPtr generalize(const ExpressionPtr& _pExpr) {
     if (freeValues.empty())
         return _pExpr;
 
-    FormulaPtr pFormula = new Formula(Formula::UNIVERSAL, _pExpr);
+    const auto pFormula = std::make_shared<Formula>(Formula::UNIVERSAL, _pExpr);
     pFormula->getBoundVariables().prepend(freeValues.begin(), freeValues.end());
     return pFormula;
 }
@@ -367,54 +378,54 @@ ir::FormulaPtr setQuantifier(int _quantifier, const ir::ExpressionPtr& _pExpr, c
     ValuesSet freeValues;
     collectValues(_pExpr, freeValues, _bound);
 
-    FormulaPtr pFormula = new Formula(_quantifier, _pExpr);
+    const auto pFormula = std::make_shared<Formula>(_quantifier, _pExpr);
     pFormula->getBoundVariables().prepend(freeValues.begin(), freeValues.end());
     return pFormula;
 }
 
 ExpressionPtr resolveCase(const NamedValue& _index, const ExpressionPtr& _pCase) {
     if (_pCase->getKind() != Expression::TYPE ||
-        (_pCase.as<TypeExpr>()->getContents()->getKind() != Type::RANGE &&
-        _pCase.as<TypeExpr>()->getContents()->getKind() != Type::SUBTYPE))
-        return new Binary(Binary::EQUALS, new VariableReference(L"", &_index), _pCase);
+        (_pCase->as<TypeExpr>()->getContents()->getKind() != Type::RANGE &&
+        _pCase->as<TypeExpr>()->getContents()->getKind() != Type::SUBTYPE))
+        return std::make_shared<Binary>(Binary::EQUALS, std::make_shared<VariableReference>(L"", &_index), _pCase);
 
     const SubtypePtr pContents =
-        _pCase.as<TypeExpr>()->getContents()->getKind() != Type::SUBTYPE ?
-            _pCase.as<TypeExpr>()->getContents().as<Range>()->asSubtype() :
-            _pCase.as<TypeExpr>()->getContents().as<Subtype>();
+        _pCase->as<TypeExpr>()->getContents()->getKind() != Type::SUBTYPE ?
+            _pCase->as<TypeExpr>()->getContents()->as<Range>()->asSubtype() :
+            _pCase->as<TypeExpr>()->getContents()->as<Subtype>();
 
     ExpressionPtr pCase = clone(pContents->getExpression());
 
     return Expression::substitute(pCase,
-        new VariableReference(L"", pContents->getParam()),
-        new VariableReference(L"", &_index)).as<Expression>();
+        std::make_shared<VariableReference>(L"", pContents->getParam()),
+        std::make_shared<VariableReference>(L"", &_index))->as<Expression>();
 }
 
 ExpressionPtr resolveCase(const NamedValues& _indexes, const ExpressionPtr& _pCase) {
     if (_indexes.empty())
-        return new Literal(true);
+        return std::make_shared<Literal>(true);
     if (_indexes.size() == 1)
         return resolveCase(*_indexes.get(0), _pCase);
 
     if (_pCase->getKind() != Expression::CONSTRUCTOR &&
-        _pCase.as<Constructor>()->getConstructorKind() != Constructor::STRUCT_FIELDS)
+        _pCase->as<Constructor>()->getConstructorKind() != Constructor::STRUCT_FIELDS)
         return nullptr;
 
-    const StructConstructor& tuple = *_pCase.as<StructConstructor>();
+    const auto tuple = _pCase->as<StructConstructor>();
 
-    if (tuple.size() != _indexes.size())
+    if (tuple->size() != _indexes.size())
         return nullptr;
 
     std::list<ExpressionPtr> conds;
     for (size_t i = 0; i < _indexes.size(); ++i)
-        conds.push_back(resolveCase(*_indexes.get(i), tuple.get(i)->getValue()));
+        conds.push_back(resolveCase(*_indexes.get(i), tuple->get(i)->getValue()));
 
-    return new Binary(Binary::BOOL_AND, conds);
+    return std::make_shared<Binary>(Binary::BOOL_AND, conds);
 }
 
 ExpressionPtr resolveCase(const NamedValues& _indexes, const Collection<Expression>& _case) {
     if (_case.empty())
-        return new Literal(true);
+        return std::make_shared<Literal>(true);
     if (_case.size() == 1)
         return resolveCase(_indexes, _case.get(0));
 
@@ -422,7 +433,7 @@ ExpressionPtr resolveCase(const NamedValues& _indexes, const Collection<Expressi
     for (size_t i = 0; i < _case.size(); ++i)
         conds.push_back(resolveCase(_indexes, _case.get(i)));
 
-    return new Binary(Binary::BOOL_OR, conds);
+    return std::make_shared<Binary>(Binary::BOOL_OR, conds);
 }
 
 FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ExpressionPtr &_pExpr) {
@@ -434,12 +445,12 @@ FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const Express
 FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ExpressionPtr &_pExpr, const NamedValues& _params) {
     ExpressionPtr pExpr = _pExpr;
     if (pExpr->getKind() == ir::Expression::FORMULA
-        && pExpr.as<Formula>()->getQuantifier() == Formula::NONE)
-        pExpr = pExpr.as<Formula>()->getSubformula();
+        && pExpr->as<Formula>()->getQuantifier() == Formula::NONE)
+        pExpr = pExpr->as<Formula>()->getSubformula();
 
     NamedValues params;
     collectValues(pExpr, params, _params);
-    FormulaDeclarationPtr pDecl = new FormulaDeclaration(_strName, pExpr->getType(), pExpr);
+    const auto pDecl = std::make_shared<FormulaDeclaration>(_strName, pExpr->getType(), pExpr);
     pDecl->getParams().assign(params);
 
     return pDecl;
@@ -453,9 +464,9 @@ FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const Predica
 
 std::list<ModulePtr> getModulePath(const std::list<Visitor::Loc>& _path) {
     std::list<ModulePtr> path;
-    for(auto& i: _path) {
+    for(const auto& i : _path) {
         if (i.pNode && i.pNode->getNodeKind() == Node::MODULE)
-            path.push_back(NodePtr(i.pNode).as<Module>());
+            path.push_back(i.pNode->as<Module>());
     }
     return path;
 }

@@ -238,13 +238,13 @@ public:
 
     bool visitExpression(ir::Expression &_expr) {
         Matches matches;
-        if (!_expr.matches(*m_pFrom, &matches))
+        if (!_expr.matches(m_pFrom, &matches))
             return true;
 
         ExpressionPtr m_pReplacement = clone(*m_pTo);
         Expression::substitute(m_pReplacement, matches);
 
-        if (m_pRoot.ptr() != &_expr) {
+        if (m_pRoot.get() != &_expr) {
             callSetter(m_pReplacement);
             return true;
         }
@@ -485,7 +485,7 @@ bool Binary::matches(const Expression& _other, MatchesPtr _pMatches) const {
     if (getOperator() != other.getOperator())
         return false;
 
-    MatchesPtr pOldMatches = _pMatches ? new Matches(*_pMatches) : nullptr;
+    MatchesPtr pOldMatches = _pMatches ? std::make_shared<Matches>(*_pMatches) : nullptr;
     if (_matches(getLeftSide(), other.getLeftSide(), _pMatches) && _matches(getRightSide(), other.getRightSide(), _pMatches))
         return true;
 

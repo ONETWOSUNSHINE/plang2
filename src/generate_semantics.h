@@ -15,10 +15,10 @@ namespace ir{
 class CollectPreConditions : public Visitor {
     Module &m_module;
     class NameGenerator;
-    Auto<NameGenerator> m_pNameGen;
+    std::shared_ptr<NameGenerator> m_pNameGen;
     Predicate *m_pPredicate = nullptr;
     Process *m_pProcess = nullptr;
-    Auto<Module> m_pNewModule;
+    std::shared_ptr<Module> m_pNewModule;
     Collection<LemmaDeclaration> m_lemmas;
 
 public:
@@ -92,7 +92,7 @@ private:
     NamedValuePtr m_pNamedValue;
 };
 
-Auto<Module> processPreConditions(Module &_module);
+std::shared_ptr<Module> processPreConditions(Module &_module);
 
 void getRanges(const ArrayType &_array, Collection<Range> &_ranges);
 

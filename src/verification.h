@@ -10,7 +10,7 @@
 
 namespace vf {
 
-class Conjunct : public Counted {
+class Conjunct {
 public:
     enum {
         LOGIC,
@@ -25,7 +25,7 @@ public:
     virtual ir::ExpressionPtr mergeToExpression() const = 0;
     virtual void getFreeValues(na::ValuesSet& _container) const = 0;
 };
-typedef Auto<Conjunct> ConjunctPtr;
+using ConjunctPtr = std::shared_ptr<Conjunct>;
 
 class LogicConjunct : public Conjunct {
 public:
@@ -44,7 +44,8 @@ public:
 private:
     ir::StatementPtr m_pStatement;
 };
-typedef Auto<LogicConjunct> LogicConjunctPtr;
+
+using LogicConjunctPtr = std::shared_ptr<LogicConjunct>;
 
 class FormulaConjunct : public Conjunct {
 public:
@@ -63,7 +64,7 @@ public:
 private:
     ir::ExpressionPtr m_pExpression;
 };
-typedef Auto<FormulaConjunct> FormulaConjunctPtr;
+using FormulaConjunctPtr = std::shared_ptr<FormulaConjunct>;
 
 class QuantifierConjunct : public Conjunct {
 public:
@@ -91,9 +92,12 @@ private:
     na::ValuesSet m_bound;
     ConjunctPtr m_pConjunct;
 };
-typedef Auto<QuantifierConjunct> QuantifierConjunctPtr;
 
-class Conjunction : public Counted {
+using QuantifierConjunctPtr = std::shared_ptr<QuantifierConjunct>;
+
+using ConjunctionPtr = std::shared_ptr<class Conjunction>;
+
+class Conjunction {
 public:
     Conjunction() {}
     Conjunction(const ConjunctPtr& _pConjunct) { m_conjuncts.insert(_pConjunct); }
@@ -111,31 +115,31 @@ public:
     void clear() { m_conjuncts.clear(); }
 
     void addConjunct(const ConjunctPtr& _pConjunct) { getConjuncts().insert(_pConjunct); }
-    void addExpression(const ir::ExpressionPtr& _pExpr) { getConjuncts().insert(new FormulaConjunct(_pExpr)); }
+    void addExpression(const ir::ExpressionPtr& _pExpr) { getConjuncts().insert(std::make_shared<FormulaConjunct>(_pExpr)); }
 
     void assign(const Conjunction& _conjunction) { m_conjuncts = _conjunction.m_conjuncts; }
-    void assign(const Auto<Conjunction>& _pConjunction) { m_conjuncts = _pConjunction->m_conjuncts; }
+    void assign(const ConjunctionPtr& _pConjunction) { m_conjuncts = _pConjunction->m_conjuncts; }
 
     void append(const Conjunction& _conjunction)
         { getConjuncts().insert(_conjunction.getConjuncts().begin(), _conjunction.getConjuncts().end()); }
-    void append(const Auto<Conjunction>& _pConjunction)
+    void append(const ConjunctionPtr& _pConjunction)
         { if (_pConjunction) append(*_pConjunction); }
 
     bool hasLogic() const;
     void getFreeValues(na::ValuesSet& _container) const;
     ir::ExpressionPtr mergeToExpression() const;
 
-    static Auto<Conjunction> getConjunction(const ir::ExpressionPtr& _pExpr, bool _bExpandCalls = false);
+    static ConjunctionPtr getConjunction(const ir::ExpressionPtr& _pExpr, bool _bExpandCalls = false);
     bool split(const na::ValuesSet& _leftValues, Conjunction& _left, const na::ValuesSet& _rightValues, Conjunction& _right);
 
     void negate();
-    void disjunct(const Auto<Conjunction>& _pOther);
+    void disjunct(const ConjunctionPtr& _pOther);
 
-    static Auto<Conjunction> implies(const Auto<Conjunction>& _pLeft, const Auto<Conjunction>& _pRight);
-    void implies(const Auto<Conjunction>& _pOther);
+    static ConjunctionPtr implies(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight);
+    void implies(const ConjunctionPtr& _pOther);
 
     bool releaseAssignments();
-    std::pair<ConjunctPtr, Auto<Conjunction> > extractLogic() const;
+    std::pair<ConjunctPtr, ConjunctionPtr> extractLogic() const;
 
 private:
     Conjuncts m_conjuncts;
@@ -147,13 +151,11 @@ private:
 
     static void _negate(const ConjunctPtr& _pConjunct, Conjunction& _result);
     static void _normalize(const ConjunctPtr& _pConjunct, Conjunction& _result);
-    static void _disjunct(const Auto<Conjunction>& _pLeft, const Auto<Conjunction>& _pRight, Conjunction& _result);
-    static void _implies(const Auto<Conjunction>& _pLeft, const Auto<Conjunction>& _pRight, Conjunction& _result);
-
+    static void _disjunct(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight, Conjunction& _result);
+    static void _implies(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight, Conjunction& _result);
 };
-typedef Auto<Conjunction> ConjunctionPtr;
 
-class Condition : public Counted {
+class Condition {
 public:
     enum {
         SEQUENT,
@@ -162,16 +164,17 @@ public:
     Condition() {}
     virtual int getKind() const = 0;
 };
-typedef Auto<Condition> ConditionPtr;
+
+using ConditionPtr = std::shared_ptr<Condition>;
 
 class Sequent : public Condition {
 public:
     Sequent() :
-        m_pLeft(new Conjunction()), m_pRight(new Conjunction())
+        m_pLeft(std::make_shared<Conjunction>()), m_pRight(std::make_shared<Conjunction>())
     {}
     Sequent(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRigth) :
-        m_pLeft(!_pLeft ? new Conjunction() : _pLeft),
-        m_pRight(!_pRigth ? new Conjunction() : _pRigth)
+        m_pLeft(!_pLeft ? std::make_shared<Conjunction>() : _pLeft),
+        m_pRight(!_pRigth ? std::make_shared<Conjunction>() : _pRigth)
     {}
 
     virtual int getKind() const { return SEQUENT; }
@@ -186,7 +189,7 @@ public:
 private:
     ConjunctionPtr m_pLeft, m_pRight;
 };
-typedef Auto<Sequent> SequentPtr;
+using SequentPtr = std::shared_ptr<Sequent>;
 
 class Correctness : public Condition {
 public:
@@ -211,9 +214,10 @@ private:
     ir::StatementPtr m_pStmt;
     ConjunctionPtr m_pPre, m_pPost;
 };
-typedef Auto<Correctness> CorrectnessPtr;
 
-struct Context : public Counted {
+using CorrectnessPtr = std::shared_ptr<Correctness>;
+
+struct Context {
     // Rules
     enum {
         TRANSFER = 1,
@@ -272,7 +276,8 @@ struct Context : public Counted {
     ir::FormulaDeclarationPtr getMeasure(const ir::Call& _call);
 
 };
-typedef Auto<Context> ContextPtr;
+
+using ContextPtr = std::shared_ptr<Context>;
 
 ir::ModulePtr verify(const ir::ModulePtr &_pModule);
 

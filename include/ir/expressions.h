@@ -47,7 +47,7 @@ private:
 };
 
 class Matches;
-typedef Auto<Matches> MatchesPtr;
+using MatchesPtr = std::shared_ptr<Matches>;
 
 /// Virtual ancestor of all expressions.
 class Expression : public Node {

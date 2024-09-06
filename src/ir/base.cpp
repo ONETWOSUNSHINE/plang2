@@ -14,7 +14,7 @@ public:
         m_pContainer(_pContainer), m_bRoot(true)
     {}
 
-    bool visitNode(ir::NodePtr& _pNode) {
+    bool visitNode(const ir::NodePtr& _pNode) {
         if (m_bRoot) {
             m_bRoot = false;
             return true;

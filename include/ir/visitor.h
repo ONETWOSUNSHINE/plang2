@@ -82,7 +82,7 @@ public:
         bool bPartOfCollection, bLastInCollection;
         size_t cPosInCollection;
 
-        Loc(NodePtr &_pNode, NodeType _type, NodeRole _role, RoleHandler _roleHandler = nullptr,
+        Loc(const NodePtr &_pNode, NodeType _type, NodeRole _role, RoleHandler _roleHandler = nullptr,
                 RoleHandler _roleHandlerPost = nullptr, NodeSetter *_pSetter = nullptr, NodeWalkUp _walkUp = nullptr) :
             pNode(_pNode), type(_type), role(_role), roleHandler(_roleHandler), roleHandlerPost(_roleHandlerPost),
             pSetter(_pSetter), walkUp(_walkUp), bPartOfCollection(false),
@@ -93,8 +93,8 @@ public:
 
     virtual bool traverseNode(const NodePtr &_node);
     template<class _Node, class _Base> bool traverseCollection(Collection<_Node, _Base> &_pNodes);
-    virtual bool visitNode(NodePtr &_node);
-    bool walkUpFromNode(NodePtr &_node);
+    virtual bool visitNode(const NodePtr &_node);
+    bool walkUpFromNode(const NodePtr &_node);
 
 #define NODE(_NODE, _PARENT)                            \
         bool walkUpFrom##_NODE(NodePtr &_pNode) {           \
@@ -102,10 +102,10 @@ public:
                 return false;                           \
             return visit##_NODE(std::static_pointer_cast<_NODE>(_pNode));        \
         }                                               \
-        virtual bool visit##_NODE(std::shared_ptr<_NODE> &_pNode) {       \
+        virtual bool visit##_NODE(const std::shared_ptr<_NODE> &_pNode) {       \
             return true;                                \
         }                                               \
-        virtual bool traverse##_NODE(std::shared_ptr<_NODE> &_pNode);
+        virtual bool traverse##_NODE(const std::shared_ptr<_NODE> &_pNode);
 #include "nodes.inl"
 #undef NODE
 

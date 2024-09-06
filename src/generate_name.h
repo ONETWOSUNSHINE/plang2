@@ -11,7 +11,7 @@
 #include <set>
 #include <functional>
 
-class NameGenerator : public Counted {
+class NameGenerator {
 public:
     NameGenerator() :
         m_nLastFoundValue(0), m_nLastFoundType(0), m_nLastFoundFormula(0),
