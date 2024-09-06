@@ -100,7 +100,7 @@ public:
         bool walkUpFrom##_NODE(NodePtr &_pNode) {           \
             if (!walkUpFrom##_PARENT(_pNode))            \
                 return false;                           \
-            return visit##_NODE(std::static_pointer_cast<_NODE>(_pNode));        \
+            return visit##_NODE(_pNode->as<_NODE>());        \
         }                                               \
         virtual bool visit##_NODE(const std::shared_ptr<_NODE> &_pNode) {       \
             return true;                                \

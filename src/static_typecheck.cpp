@@ -28,7 +28,7 @@ bool StaticTypeProver::isTypeEqual(const TypePtr &_t1, const TypePtr &_t2) {
 }
 
 TypePtr StaticTypeProver::getTypeJoin(const TypePtr &_t1, const TypePtr &_t2) {
-    TypePtr tJoin = _t1->getJoin(*_t2);
+    const auto tJoin = _t1->getJoin(_t2);
     printTypecheckInfo(L"Get Join", str(*_t1) + L" & " + str(*_t2) + L" => " + str(*tJoin));
     return tJoin;
 }

@@ -134,7 +134,7 @@ void Param::updateUsed(NodePtr &_pRoot) {
     struct Enumerator : public Visitor {
         std::set<NamedValuePtr> params;
 
-        virtual bool visitParam(std::shared_ptr<Param> &_pParam) {
+        virtual bool visitParam(const std::shared_ptr<Param> &_pParam) {
             _pParam->setUsed(false);
             params.insert(_pParam);
             return true;
@@ -149,7 +149,7 @@ void Param::updateUsed(NodePtr &_pRoot) {
             traverseNode(_pRoot);
         }
 
-        virtual bool visitVariableReference(std::shared_ptr<VariableReference> &_pVal) {
+        virtual bool visitVariableReference(const std::shared_ptr<VariableReference> &_pVal) {
             if (_pVal->getTarget() && _pVal->getTarget()->getKind() == NamedValue::PREDICATE_PARAMETER &&
                 enumerator.params.find(_pVal->getTarget()) != enumerator.params.end()) {
                 auto paramPtr = std::static_pointer_cast<Param>(_pVal->getTarget());

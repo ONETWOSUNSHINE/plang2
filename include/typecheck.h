@@ -100,8 +100,8 @@ public:
     const ir::NamedValues &getFields() const { return *m_pFields; }
 
     virtual int compare(const Type &_other) const;
-    virtual ir::TypePtr getMeet(ir::Type &_other);
-    virtual ir::TypePtr getJoin(ir::Type &_other);
+    virtual ir::TypePtr getMeet(const ir::TypePtr &_other);
+    virtual ir::TypePtr getJoin(const ir::TypePtr &_other);
     virtual bool less(const Type &_other) const;
     virtual int getMonotonicity(const Type &_var) const;
 

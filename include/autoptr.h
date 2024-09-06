@@ -51,7 +51,7 @@ public:
 
     template<class _Obj>
     bool isKnown(const std::shared_ptr<_Obj>& _pObj) const {
-        return m_handles.find(_pObj.ptr()) != m_handles.cend();
+        return m_handles.find(_pObj.get()) != m_handles.cend();
     }
 
     template<class _Obj>
@@ -90,5 +90,9 @@ inline std::shared_ptr<_Obj> clone(const std::shared_ptr<_Obj>& _obj) {
 #define NEW_CLONE(_ORIGINAL, _CLONER, _CTOR) \
     ((_CLONER).allocate<std::remove_const<std::remove_reference<decltype(*_ORIGINAL)>::type>::type>(sizeof(*_ORIGINAL), _ORIGINAL), std::shared_ptr<std::remove_const<std::remove_reference<decltype(*_ORIGINAL)>::type>::type>(::new((_CLONER), _ORIGINAL) _CTOR))
 
+template<class _Comparable>
+struct PtrLess {
+    bool operator()(const std::shared_ptr<_Comparable>& _pLhs, const std::shared_ptr<_Comparable>& _pRhs) const { return _pLhs.get() < _pRhs.get(); }
+};
 
 #endif /* AUTOPTR_H_ */

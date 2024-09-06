@@ -270,13 +270,13 @@ int Formula::eval() const {
 
         case NO_JOIN:
         case HAS_JOIN:
-            if (ir::TypePtr pJoin = getLhs()->getJoin(*getRhs()))
+            if (ir::TypePtr pJoin = getLhs()->getJoin(getRhs()))
                 return (pJoin->getKind() == ir::Type::TOP) == (getKind() == NO_JOIN) ? TRUE : FALSE;
             break;
 
         case NO_MEET:
         case HAS_MEET:
-            if (ir::TypePtr pMeet = getLhs()->getMeet(*getRhs()))
+            if (ir::TypePtr pMeet = getLhs()->getMeet(getRhs()))
                 return (pMeet->getKind() == ir::Type::BOTTOM) == (getKind() == NO_MEET) ? TRUE : FALSE;
             break;
     }

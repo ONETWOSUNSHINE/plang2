@@ -162,8 +162,8 @@ public:
     virtual bool hasFresh() const;
     virtual bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true);
     virtual int compare(const Type &_other) const;
-    virtual TypePtr getMeet(Type &_other);
-    virtual TypePtr getJoin(Type &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
     virtual bool less(const Type &_other) const;
     virtual bool contains(const TypePtr &_pType) const;
     virtual int getMonotonicity(const Type &_var) const;
@@ -255,7 +255,7 @@ public:
         const UnionTypePtr &_pUnion = NULL, const TypePtr _pFields = NULL) :
         m_strName(_strName), m_pUnion(_pUnion), m_ord(_ord)
     {
-        m_pFields = !_pFields ? new StructType() : _pFields;
+        m_pFields = !_pFields ? std::make_shared<StructType>()->as<Type>() : _pFields;
     }
 
     virtual int getNodeKind() const { return Node::UNION_CONSTRUCTOR_DECLARATION; }
@@ -321,8 +321,8 @@ public:
 
     virtual bool hasFresh() const;
     virtual bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true);
-    virtual TypePtr getMeet(Type &_other);
-    virtual TypePtr getJoin(Type &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
     virtual bool less(const Type &_other) const;
     virtual int getMonotonicity(const Type &_var) const;
 
@@ -439,8 +439,8 @@ public:
     }
 
     virtual bool less(const Type &_other) const;
-    virtual TypePtr getMeet(Type &_other);
-    virtual TypePtr getJoin(Type &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
     virtual bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true);
     virtual int compare(const Type &_other) const;
     virtual int getMonotonicity(const Type &_var) const;
@@ -520,7 +520,7 @@ public:
 
     TypePtr getRootType() const {
         return getBaseType()->getKind() == ARRAY
-            ? getBaseType().as<ArrayType>()->getRootType()
+            ? getBaseType()->as<ArrayType>()->getRootType()
             : getBaseType();
     }
 
@@ -530,13 +530,13 @@ public:
 
     size_t getDimensionsCount() const {
         return getBaseType()->getKind() == ARRAY
-            ? getBaseType().as<ArrayType>()->getDimensionsCount() + 1
+            ? getBaseType()->as<ArrayType>()->getDimensionsCount() + 1
             : 1;
     }
 
     virtual bool less(const Type &_other) const;
-    virtual TypePtr getMeet(Type &_other);
-    virtual TypePtr getJoin(Type &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
     virtual bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true);
     virtual int compare(const Type &_other) const;
     virtual int getMonotonicity(const Type &_var) const;
@@ -571,8 +571,8 @@ public:
     /// \returns #Set.
     virtual int getKind() const { return SET; }
 
-    virtual TypePtr getMeet(Type &_other);
-    virtual TypePtr getJoin(Type &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
 
     virtual NodePtr clone(Cloner &_cloner) const {
         return NEW_CLONE(this, _cloner, SetType(_cloner.get(getBaseType())));
@@ -614,8 +614,8 @@ public:
     virtual bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true);
     virtual int compare(const Type &_other) const;
     virtual bool less(const Type &_other) const;
-    virtual TypePtr getJoin(Type &_other);
-    virtual TypePtr getMeet(Type &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
     virtual int getMonotonicity(const Type &_var) const;
 
     virtual NodePtr clone(Cloner &_cloner) const {
@@ -640,8 +640,8 @@ public:
     /// \returns #List.
     virtual int getKind() const { return LIST; }
 
-    virtual TypePtr getJoin(Type &_other);
-    virtual TypePtr getMeet(Type &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
 
     virtual NodePtr clone(Cloner &_cloner) const {
         return NEW_CLONE(this, _cloner, ListType(_cloner.get(getBaseType())));
@@ -659,8 +659,8 @@ public:
     /// \returns #Reference.
     virtual int getKind() const { return REFERENCE; }
 
-    virtual TypePtr getMeet(Type &_other);
-    virtual TypePtr getJoin(Type &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
 
     virtual NodePtr clone(Cloner &_cloner) const {
         return NEW_CLONE(this, _cloner, RefType(_cloner.get(getBaseType())));
@@ -734,8 +734,8 @@ public:
 
     virtual int compare(const Type &_other) const;
     virtual bool less(const Type &_other) const;
-    virtual TypePtr getJoin(Type &_other);
-    virtual TypePtr getMeet(Type &_other);
+    virtual TypePtr getJoin(const TypePtr &_other);
+    virtual TypePtr getMeet(const TypePtr &_other);
     virtual int getMonotonicity(const Type &_var) const;
 
     virtual NodePtr clone(Cloner &_cloner) const {

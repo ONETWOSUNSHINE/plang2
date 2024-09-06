@@ -329,24 +329,24 @@ StatementPtr extractCallArguments(const CallPtr& _pCall) {
 
 void getArgsMap(const FormulaCall &_call, ArgsMap& _args) {
     for (size_t i = 0; i < _call.getArgs().size(); ++i)
-        _args.addExpression(*_call.getTarget()->getParams().get(i), _call.getArgs().get(i));
+        _args.addExpression(_call.getTarget()->getParams().get(i), _call.getArgs().get(i));
 }
 
 void getArgsMap(const FunctionCall &_call, ArgsMap& _args) {
     PredicateTypePtr pCallType = _call.getPredicate()->getType()->as<PredicateType>();
     for (size_t i = 0; i < _call.getArgs().size(); ++i)
-        _args.addExpression(*pCallType->getInParams().get(i), _call.getArgs().get(i));
+        _args.addExpression(pCallType->getInParams().get(i), _call.getArgs().get(i));
 }
 
 template <class T>
 void getArgsMap(const Call &_call, ArgsMap& _args, T _pred) {
     for (size_t i = 0; i < _call.getArgs().size(); ++i)
-        _args.addExpression(*_pred.getInParams().get(i), _call.getArgs().get(i));
+        _args.addExpression(_pred.getInParams().get(i), _call.getArgs().get(i));
 
     for (size_t i = 0; i < _call.getBranches().size(); ++i) {
         CallBranch &br = *_call.getBranches().get(i);
         for (size_t j = 0; j < br.size(); ++j)
-            _args.addExpression(*_pred.getOutParams().get(i)->get(j), br.get(j));
+            _args.addExpression(_pred.getOutParams().get(i)->get(j), br.get(j));
     }
 }
 

@@ -288,7 +288,7 @@ StatementPtr StmtVertex::mergeBlock() const {
         if (i + 2 >= merged.size())
             continue;
         pCurrent->add(std::make_shared<_Block>());
-        pCurrent = pCurrent->get(1)->as<_Block>();
+        pCurrent = pCurrent->get(1)->template as<_Block>();
     }
 
     return pBlock;

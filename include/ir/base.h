@@ -121,7 +121,7 @@ public:
     virtual NodePtr clone(Cloner&) const { return nullptr; }
 
     template <class _Class>
-    std::shared_ptr<_Class> as() {
+    std::shared_ptr<_Class> as() const {
         return std::static_pointer_cast<_Class>(shared_from_this());
     }
 
@@ -463,8 +463,8 @@ public:
     // Subtyping.
     virtual int compare(const Type &_other) const;
     bool compare(const Type &_other, int _order) const;
-    virtual TypePtr getJoin(Type &_other); // Supremum.
-    virtual TypePtr getMeet(Type &_other); // Infinum.
+    virtual TypePtr getJoin(const TypePtr &_other); // Supremum.
+    virtual TypePtr getMeet(const TypePtr &_other); // Infinum.
 
     enum {
         MT_NONE     = 0x01,
@@ -517,8 +517,8 @@ protected:
     /// Only descendant classes should use this.
     Type() {}
 
-    SideType _getJoin(Type &_other); // Supremum.
-    SideType _getMeet(Type &_other); // Infinum.
+    SideType _getJoin(const TypePtr &_other); // Supremum.
+    SideType _getMeet(const TypePtr &_other); // Infinum.
 
 private:
     int m_kind = 0;
@@ -702,7 +702,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone() const {
+    virtual NodePtr clone(Cloner&) const {
         const LabelPtr pCopy = std::make_shared<Label>(*this);
         pCopy->setLoc(this->getLoc());
         return pCopy;

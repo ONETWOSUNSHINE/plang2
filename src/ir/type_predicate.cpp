@@ -160,114 +160,114 @@ int PredicateType::compare(const Type &_other) const {
     return order;
 }
 
-TypePtr PredicateType::getMeet(ir::Type &_other) {
+TypePtr PredicateType::getMeet(const ir::TypePtr &_other) {
     SideType meet = _getMeet(_other);
-    if (meet.first || meet.second || _other.getKind() == FRESH)
+    if (meet.first || meet.second || _other->getKind() == FRESH)
         return meet.first;
 
-    if (_other.getKind() == FRESH)
+    if (_other->getKind() == FRESH)
         return NULL;
 
-    const PredicateType &other = (const PredicateType &)_other;
+    const auto other = _other->as<PredicateType>();
 
-    if (getInParams().size() != other.getInParams().size())
-        return new Type(BOTTOM);
+    if (getInParams().size() != other->getInParams().size())
+        return std::make_shared<Type>(BOTTOM);
 
-    if (getOutParams().size() != other.getOutParams().size())
-        return new Type(BOTTOM);
+    if (getOutParams().size() != other->getOutParams().size())
+        return std::make_shared<Type>(BOTTOM);
 
     for (size_t j = 0; j < getOutParams().size(); ++j) {
-        const Branch &b = *getOutParams().get(j);
-        const Branch &c = *other.getOutParams().get(j);
+        const auto b = getOutParams().get(j);
+        const auto c = other->getOutParams().get(j);
 
-        if (b.size() != c.size())
-            return new Type(BOTTOM);
+        if (b->size() != c->size())
+            return std::make_shared<Type>(BOTTOM);
     }
 
-    PredicateTypePtr pType = new PredicateType();
+    const auto pType = std::make_shared<PredicateType>();
 
     for (size_t i = 0; i < getInParams().size(); ++i) {
-        const Param &p = *getInParams().get(i);
-        const Param &q = *other.getInParams().get(i);
+        const auto p = getInParams().get(i);
+        const auto q = other->getInParams().get(i);
 
-        if (TypePtr pJoin = p.getType()->getJoin(*q.getType()))
-            pType->getInParams().add(new Param(L"", pJoin, false));
+        if (const auto pJoin = p->getType()->getJoin(q->getType()))
+            pType->getInParams().add(std::make_shared<Param>(L"", pJoin, false));
         else
             return NULL;
     }
 
     for (size_t j = 0; j < getOutParams().size(); ++j) {
-        const Branch &b = *getOutParams().get(j);
-        const Branch &c = *other.getOutParams().get(j);
-        Branch *pBranch = new Branch();
+        const auto b = getOutParams().get(j);
+        const auto c = other->getOutParams().get(j);
+        const auto pBranch = std::make_shared<Branch>();
 
         pType->getOutParams().add(pBranch);
 
-        for (size_t i = 0; i < b.size(); ++ i) {
-            const Param &p = *b.get(i);
-            const Param &q = *c.get(i);
+        for (size_t i = 0; i < b->size(); ++ i) {
+            const auto p = b->get(i);
+            const auto q = c->get(i);
 
-            if (TypePtr pMeet = p.getType()->getMeet(*q.getType()))
-                pBranch->add(new Param(L"", pMeet, true));
+            if (const auto pMeet = p->getType()->getMeet(q->getType()))
+                pBranch->add(std::make_shared<Param>(L"", pMeet, true));
             else
-                return NULL;
+                return nullptr;
         }
     }
 
     return pType;
 }
 
-TypePtr PredicateType::getJoin(ir::Type &_other) {
+TypePtr PredicateType::getJoin(const ir::TypePtr &_other) {
     SideType join = _getJoin(_other);
-    if (join.first || join.second || _other.getKind() == FRESH)
+    if (join.first || join.second || _other->getKind() == FRESH)
         return join.first;
 
-    if (_other.getKind() == FRESH)
+    if (_other->getKind() == FRESH)
         return NULL;
 
-    const PredicateType &other = (const PredicateType &)_other;
+    const auto other = _other->as<PredicateType>();
 
-    if (getInParams().size() != other.getInParams().size())
-        return new Type(TOP);
+    if (getInParams().size() != other->getInParams().size())
+        return std::make_shared<Type>(TOP);
 
-    if (getOutParams().size() != other.getOutParams().size())
-        return new Type(TOP);
+    if (getOutParams().size() != other->getOutParams().size())
+        return std::make_shared<Type>(TOP);
 
     for (size_t j = 0; j < getOutParams().size(); ++j) {
-        const Branch &b = *getOutParams().get(j);
-        const Branch &c = *other.getOutParams().get(j);
+        const auto b = getOutParams().get(j);
+        const auto c = other->getOutParams().get(j);
 
-        if (b.size() != c.size())
-            return new Type(TOP);
+        if (b->size() != c->size())
+            return std::make_shared<Type>(TOP);
     }
 
-    PredicateTypePtr pType = new PredicateType();
+    const auto pType = std::make_shared<PredicateType>();
 
     for (size_t i = 0; i < getInParams().size(); ++i) {
-        const Param &p = *getInParams().get(i);
-        const Param &q = *other.getInParams().get(i);
+        const auto p = getInParams().get(i);
+        const auto q = other->getInParams().get(i);
 
-        if (TypePtr pMeet = p.getType()->getMeet(*q.getType()))
-            pType->getInParams().add(new Param(L"", pMeet, false));
+        if (const auto pMeet = p->getType()->getMeet(q->getType()))
+            pType->getInParams().add(std::make_shared<Param>(L"", pMeet, false));
         else
-            return NULL;
+            return nullptr;
     }
 
     for (size_t j = 0; j < getOutParams().size(); ++j) {
-        const Branch &b = *getOutParams().get(j);
-        const Branch &c = *other.getOutParams().get(j);
-        Branch *pBranch = new Branch();
+        const auto b = getOutParams().get(j);
+        const auto c = other->getOutParams().get(j);
+        const auto pBranch = std::make_shared<Branch>();
 
         pType->getOutParams().add(pBranch);
 
-        for (size_t i = 0; i < b.size(); ++ i) {
-            const Param &p = *b.get(i);
-            const Param &q = *c.get(i);
+        for (size_t i = 0; i < b->size(); ++ i) {
+            const auto p = b->get(i);
+            const auto q = c->get(i);
 
-            if (TypePtr pJoin = p.getType()->getJoin(*q.getType()))
-                pBranch->add(new Param(L"", pJoin, true));
+            if (const auto pJoin = p->getType()->getJoin(q->getType()))
+                pBranch->add(std::make_shared<Param>(L"", pJoin, true));
             else
-                return NULL;
+                return nullptr;
         }
     }
 

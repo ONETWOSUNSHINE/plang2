@@ -226,7 +226,7 @@ public:
     /// \param _bLocal Specifies if it is a local variable.
     /// \param _strName Variable name.
     VariableDeclaration(bool _bLocal, const std::wstring &_strName) : m_pVar(NULL), m_pValue(NULL) {
-        setVariable(new Variable(_bLocal, _strName));
+        setVariable(std::make_shared<Variable>(_bLocal, _strName));
     }
 
     /// Get statement kind.
@@ -239,7 +239,7 @@ public:
 
     void setVariable(const VariablePtr &_pVar) {
         m_pVar = _pVar;
-        m_pVar->setDeclaration(this);
+        m_pVar->setDeclaration(shared_from_this()->as<VariableDeclaration>());
     }
 
     /// Get value expression. Possibly NULL if variable is not initialized.
@@ -274,7 +274,7 @@ public:
     virtual int getKind() const { return VARIABLE_DECLARATION_GROUP; }
 
     virtual NodePtr clone(Cloner &_cloner) const {
-        Auto<VariableDeclarationGroup > pCopy = NEW_CLONE(this, _cloner, VariableDeclarationGroup());
+        const auto pCopy = NEW_CLONE(this, _cloner, VariableDeclarationGroup());
         pCopy->appendClones(*this, _cloner);
         return pCopy;
     }
@@ -338,7 +338,7 @@ public:
         m_strName(_strName), m_pFormula(_pFormula), m_pMeasure(_pMeasure), m_pType(_pType)
     {
         if (!_pType)
-            m_pType = new Type(Type::BOOL);
+            m_pType = std::make_shared<Type>(Type::BOOL);
     }
 
     /// Get statement kind.

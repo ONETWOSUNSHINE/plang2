@@ -236,141 +236,141 @@ int maxBitsIntNat(int _bitsInt, int _bitsNat) {
     return _bitsInt;
 }
 
-/* virtual */ TypePtr Type::getJoin(Type &_other) {
+/* virtual */ TypePtr Type::getJoin(const TypePtr &_other) {
     return _getJoin(_other).first;
 }
 
-/* protected */ SideType Type::_getJoin(Type &_other) {
-    if (getKind() == TOP || _other.getKind() == BOTTOM)
-        return std::make_pair(this, false);
+/* protected */ SideType Type::_getJoin(const TypePtr &_other) {
+    if (getKind() == TOP || _other->getKind() == BOTTOM)
+        return std::make_pair(shared_from_this()->as<Type>(), false);
 
-    if (getKind() == BOTTOM || _other.getKind() == TOP)
-        return std::make_pair(&_other, false);
+    if (getKind() == BOTTOM || _other->getKind() == TOP)
+        return std::make_pair(_other, false);
 
-    if (getKind() == FRESH || _other.getKind() == FRESH) {
-        ir::Type &fresh = getKind() == FRESH ? *this : _other;
-        ir::Type &other = getKind() == FRESH ? _other : *this;
+    if (getKind() == FRESH || _other->getKind() == FRESH) {
+        const auto fresh = getKind() == FRESH ? shared_from_this() : _other;
+        const auto other = getKind() == FRESH ? _other : shared_from_this();
 
-        if (other.contains(&fresh))
-            return std::make_pair(new Type(TOP), false);
+        if (other->contains(fresh))
+            return std::make_pair(std::make_shared<Type>(TOP), false);
 
-        return std::make_pair((Type *)NULL, false);
+        return std::make_pair(TypePtr(), false);
     }
 
     const int nOrd = compare(_other);
 
     if ((nOrd & ORD_SUB) && !(nOrd & ~(ORD_SUB | ORD_EQUALS)))
-        return {&_other, false};
+        return std::make_pair(_other, false);
 
     if ((nOrd & (ORD_SUPER | ORD_EQUALS)) && !(nOrd & ~(ORD_SUPER | ORD_EQUALS)))
-        return {this, false};
+        return std::make_pair(shared_from_this()->as<Type>(), false);
 
     typedef std::pair<int, int> P;
-    P kinds(getKind(), _other.getKind());
+    P kinds(getKind(), _other->getKind());
 
     if (kinds == P(NAT, INT))
-        return std::make_pair(new Type(INT, maxBitsIntNat(_other.getBits(), getBits())), false);
+        return std::make_pair(std::make_shared<Type>(INT, maxBitsIntNat(_other->getBits(), getBits())), false);
 
     if (kinds == P(INT, NAT))
-        return std::make_pair(new Type(INT, maxBitsIntNat(getBits(), _other.getBits())), false);
+        return std::make_pair(std::make_shared<Type>(INT, maxBitsIntNat(getBits(), _other->getBits())), false);
 
-    if (getKind() != _other.getKind()) {
+    if (getKind() != _other->getKind()) {
         if (nOrd == ORD_UNKNOWN)
-            return std::make_pair((Type *)NULL, true);
-        return std::make_pair(new Type(TOP), false);
+            return std::make_pair(TypePtr(), true);
+        return std::make_pair(std::make_shared<Type>(TOP), false);
     }
 
-    return std::make_pair((Type *)NULL, false);
+    return std::make_pair(TypePtr(), false);
 }
 
-/* virtual */ TypePtr Type::getMeet(ir::Type &_other) {
+/* virtual */ TypePtr Type::getMeet(const ir::TypePtr &_other) {
     return _getMeet(_other).first;
 }
 
-/* protected */ SideType Type::_getMeet(ir::Type &_other) {
-    if (getKind() == TOP || _other.getKind() == BOTTOM)
-        return std::make_pair(&_other, false);
+/* protected */ SideType Type::_getMeet(const ir::TypePtr &_other) {
+    if (getKind() == TOP || _other->getKind() == BOTTOM)
+        return std::make_pair(_other, false);
 
-    if (getKind() == BOTTOM || _other.getKind() == TOP)
-        return std::make_pair(this, false);
+    if (getKind() == BOTTOM || _other->getKind() == TOP)
+        return std::make_pair(shared_from_this()->as<Type>(), false);
 
-    if (getKind() == FRESH || _other.getKind() == FRESH) {
-        ir::Type &fresh = getKind() == FRESH ? *this : _other;
-        ir::Type &other = getKind() == FRESH ? _other : *this;
+    if (getKind() == FRESH || _other->getKind() == FRESH) {
+        const auto fresh = getKind() == FRESH ? shared_from_this() : _other;
+        const auto other = getKind() == FRESH ? _other : shared_from_this();
 
-        if (other.contains(&fresh))
-            return std::make_pair(new Type(BOTTOM), false);
+        if (other->contains(&fresh))
+            return std::make_pair(std::make_shared<Type>(BOTTOM), false);
 
-        return std::make_pair((Type *)NULL, false);
+        return std::make_pair(TypePtr(), false);
     }
 
     const int nOrd = compare(_other);
 
     if ((nOrd & (ORD_SUB | ORD_EQUALS)) && !(nOrd & ~(ORD_SUB | ORD_EQUALS)))
-        return {this, false};
+        return std::make_pair(shared_from_this()->as<Type>(), false);
 
     if ((nOrd & ORD_SUPER) && !(nOrd & ~(ORD_SUPER | ORD_EQUALS)))
-        return {&_other, false};
+        return std::make_pair(_other, false);
 
     typedef std::pair<int, int> P;
-    P kinds(getKind(), _other.getKind());
+    P kinds(getKind(), _other->getKind());
 
     if (kinds == P(NAT, INT))
-        return std::make_pair(new Type(NAT, minBitsIntNat(_other.getBits(), getBits())), false);
+        return std::make_pair(std::make_shared<Type>(NAT, minBitsIntNat(_other->getBits(), getBits())), false);
 
     if (kinds == P(INT, NAT))
-        return std::make_pair(new Type(NAT, minBitsIntNat(getBits(), _other.getBits())), false);
+        return std::make_pair(std::make_shared<Type>(NAT, minBitsIntNat(getBits(), _other->getBits())), false);
 
-    if (getKind() != _other.getKind()) {
+    if (getKind() != _other->getKind()) {
         if (nOrd == ORD_UNKNOWN)
-            return std::make_pair((Type *)NULL, true);
-        return std::make_pair(new Type(BOTTOM), false);
+            return std::make_pair(TypePtr(), true);
+        return std::make_pair(std::make_shared<Type>(BOTTOM), false);
     }
 
-    return std::make_pair((Type *)NULL, false);
+    return std::make_pair(TypePtr(), false);
 }
 
 void ArrayType::getDimensions(Collection<Type>& _dimensions) const {
     _dimensions.add(getDimensionType());
     if (getBaseType()->getKind() == ARRAY)
-        getBaseType().as<ArrayType>()->getDimensions(_dimensions);
+        getBaseType()->as<ArrayType>()->getDimensions(_dimensions);
 }
 
 RangePtr Subtype::asRange() const {
     Matches matches;
-    BinaryPtr pMask =
-        new Binary(Binary::BOOL_AND,
-                   new Binary(Binary::GREATER_OR_EQUALS,
-                              new Wild(L"c"),
-                              new Wild(L"a")),
-                   new Binary(Binary::LESS_OR_EQUALS,
-                              new Wild(L"c"),
-                              new Wild(L"b")));
+    const auto pMask =
+        std::make_shared<Binary>(Binary::BOOL_AND,
+                   std::make_shared<Binary>(Binary::GREATER_OR_EQUALS,
+                              std::make_shared<Wild>(L"c"),
+                              std::make_shared<Wild>(L"a")),
+                   std::make_shared<Binary>(Binary::LESS_OR_EQUALS,
+                              std::make_shared<Wild>(L"c"),
+                              std::make_shared<Wild>(L"b")));
 
-    pMask->setType(new Type(Type::BOOL));
-    pMask->getLeftSide()->setType(new Type(Type::BOOL));
-    pMask->getRightSide()->setType(new Type(Type::BOOL));
+    pMask->setType(std::make_shared<Type>(Type::BOOL));
+    pMask->getLeftSide()->setType(std::make_shared<Type>(Type::BOOL));
+    pMask->getRightSide()->setType(std::make_shared<Type>(Type::BOOL));
 
-    if (!Expression::matches(getExpression(), pMask, &matches))
+    if (!Expression::matches(getExpression(), pMask->as<Expression>(), &matches))
         return NULL;
-    return new Range(matches.getExprByName(L"a"), matches.getExprByName(L"b"));
+    return std::make_shared<Range>(matches.getExprByName(L"a"), matches.getExprByName(L"b"));
 }
 
 SubtypePtr Range::asSubtype() const {
-    NamedValuePtr pParam = new NamedValue(L"", new Type(Type::GENERIC));
-    BinaryPtr pExpr = new Binary(Binary::BOOL_AND,
-        new Binary(Binary::GREATER_OR_EQUALS,
-            new VariableReference(pParam),
+    const auto pParam = std::make_shared<NamedValue>(L"", new Type(Type::GENERIC));
+    const auto pExpr = std::make_shared<Binary>(Binary::BOOL_AND,
+        std::make_shared<Binary>(Binary::GREATER_OR_EQUALS,
+            std::make_shared<VariableReference>(pParam),
             getMin()),
-        new Binary(Binary::LESS_OR_EQUALS,
-            new VariableReference(pParam),
+        std::make_shared<Binary>(Binary::LESS_OR_EQUALS,
+            std::make_shared<VariableReference>(pParam),
             getMax()));
 
-    pExpr->setType(new Type(Type::BOOL));
-    pExpr->getLeftSide()->setType(new Type(Type::BOOL));
-    pExpr->getRightSide()->setType(new Type(Type::BOOL));
+    pExpr->setType(std::make_shared<Type>(Type::BOOL));
+    pExpr->getLeftSide()->setType(std::make_shared<Type>(Type::BOOL));
+    pExpr->getRightSide()->setType(std::make_shared<Type>(Type::BOOL));
 
-    return new Subtype(pParam, pExpr);
+    return std::make_shared<Subtype>(pParam, pExpr);
 }
 
 bool Type::isMonotone(const Type &_var, bool _bStrict) const {
@@ -465,7 +465,7 @@ const TypePtr& UnionConstructorDeclaration::getFields() const {
 
 StructTypePtr UnionConstructorDeclaration::getStructFields() const {
     return m_pFields && m_pFields->getKind() == Type::STRUCT ?
-        m_pFields.as<StructType>() : StructTypePtr();
+        m_pFields->as<StructType>() : StructTypePtr();
 }
 
 void UnionConstructorDeclaration::setFields(const TypePtr& _pFields) {
@@ -494,9 +494,9 @@ bool NamedReferenceType::rewrite(const TypePtr &_pOld, const TypePtr &_pNew, boo
     for (size_t i = 0; i < m_args.size(); ++i) {
         if (m_args.get(i)->getKind() != Expression::TYPE)
             continue;
-        TypePtr pType = m_args.get(i).as<TypeExpr>()->getContents();
+        TypePtr pType = m_args.get(i)->as<TypeExpr>()->getContents();
         if (tc::rewriteType(pType, _pOld, _pNew, _bRewriteFlags)) {
-            m_args.get(i).as<TypeExpr>()->setContents(pType);
+            m_args.get(i)->as<TypeExpr>()->setContents(pType);
             bResult = true;
         }
     }

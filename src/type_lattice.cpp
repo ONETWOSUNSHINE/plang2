@@ -520,7 +520,7 @@ void Lattice::update(RelationHandler _handler, void *_pParam) {
 
                 for (Relations::iterator k = ::next(j); k != uppers.end(); ++k) {
                     const Relation &v = **k;
-                    ir::TypePtr pMeet = v.getRhs()->getMeet(*u.getRhs());
+                    const auto pMeet = v.getRhs()->getMeet(u.getRhs());
 
                     if (pMeet) {
                         if (*pMeet != *u.getRhs()) { // pMeet <= u.getRhs()
@@ -549,7 +549,7 @@ void Lattice::update(RelationHandler _handler, void *_pParam) {
 
                 for (Relations::iterator k = ::next(j); k != lowers.end(); ++k) {
                     Relation &v = **k;
-                    ir::TypePtr pJoin = v.getLhs()->getJoin(*u.getLhs());
+                    const auto pJoin = v.getLhs()->getJoin(u.getLhs());
 
                     if (pJoin) {
                         if (*pJoin != *u.getLhs()) { // u.getLhs() <= pJoin
