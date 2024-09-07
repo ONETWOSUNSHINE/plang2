@@ -692,10 +692,10 @@ void Context::clearBodiesOfTypeDeclarations() const {
     }
 }
 
-void tc::apply(const ContextPtr& _pContext, ir::Node &_node) {
+void tc::apply(const ContextPtr& _pContext, const ir::NodePtr &_node) {
     _pContext->restoreNamedTypes();
     _pContext->rewriteTypesInConditions();
-    _apply(*_pContext->pSubsts, _node.as<ir::Node>());
+    _apply(*_pContext->pSubsts, _node);
     _pContext->clearBodiesOfTypeDeclarations();
 }
 

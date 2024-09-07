@@ -232,7 +232,7 @@ private:
     bool isTypeName(Context &_ctx, const std::wstring &_name) const;
     bool fixupAsteriskedParameters(Context &_ctx, Params &_in, Params &_out);
 
-    bool typecheck(Context &_ctx, Node &_node);
+    bool typecheck(Context &_ctx, const NodePtr &_node);
 };
 
 template<class _Node, class _Base>
@@ -2995,11 +2995,12 @@ Context *Parser::parsePragma(Context &_ctx) {
     return &ctx;
 }
 
-bool Parser::typecheck(Context &_ctx, Node &_node) {
+bool Parser::typecheck(Context &_ctx, const NodePtr &_node) {
     if (Options::instance().typeCheck == TC_NONE)
         return true;
 
-    tc::Formulas constraints, substs;
+    const auto constraints = std::make_shared<tc::Formulas>();
+    tc::Formulas substs;
     tc::ContextPtr pContext;
 
     try {

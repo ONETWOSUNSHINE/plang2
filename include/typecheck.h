@@ -331,11 +331,11 @@ bool rewriteType(ir::TypePtr &_pType, const ir::TypePtr &_pOld, const ir::TypePt
 
 bool solve(const ContextPtr& _pContext);
 
-ContextPtr collect(Formulas &_constraints, ir::Node &_node, ir::Context &_ctx);
+ContextPtr collect(const FormulasPtr &_constraints, const ir::NodePtr &_node, ir::Context &_ctx);
 
 void linkPredicates(ir::Context &_ctx, ir::Node &_node);
 
-void apply(const ContextPtr& _pContext, ir::Node &_node);
+void apply(const ContextPtr& _pContext, const ir::NodePtr &_node);
 
 }; // namespace tc
 
