@@ -45,8 +45,8 @@ bool Eval::_run(int & _nResult) {
     return _runCompound(_nResult) || bModified;
 }
 
-Auto<Operation> Operation::eval() {
-    return new Eval();
+OperationPtr Operation::eval() {
+    return std::make_shared<Eval>();
 }
 
 }

@@ -19,13 +19,18 @@ inline void freeList(std::list<T *> & _list) {
     _list.clear();
 }
 
-class Base {
+class Base : std::enable_shared_from_this<Base> {
 protected:
     // Override Counted's deleted copy constructor to allow copying
     // preserving Counted's internal fields.
     Base(const Base &_other) {}
     Base &operator =(const Base &_other) { return *this; }
     Base() = default;
+public:
+    template <class _Class>
+    std::shared_ptr<_Class> as() const {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
 };
 
 using TypePtr = std::shared_ptr<class Type>;
@@ -108,7 +113,7 @@ private:
 };
 
 using Types = std::vector<TypePtr>;
-using FunctionTypePtr = std::shared_ptr<FunctionType>;
+using FunctionTypePtr = std::shared_ptr<class FunctionType>;
 
 class FunctionType : public Type {
 public:
@@ -128,6 +133,8 @@ private:
     Types m_argTypes;
 };
 
+using StructTypePtr = std::shared_ptr<class StructType>;
+
 class StructType : public Type {
 public:
     StructType() : Type(STRUCT), m_strName(L"") {}
@@ -141,7 +148,7 @@ public:
     virtual size_t sizeOf() const {
         // assume 4-byte field alignment.
         size_t cSize = 0;
-        for (const auto iType : m_fieldTypes) {
+        for (const auto& iType : m_fieldTypes) {
             const size_t cFieldSize = iType->sizeOf();
             cSize += cFieldSize%4 == 0 ? cFieldSize : (cFieldSize/4 + 1)*4;
         }
@@ -194,7 +201,7 @@ private:
 };
 
 using InstructionPtr = std::shared_ptr<class Instruction>;
-using VariablePtr = std::shared_ptr<Variable>;
+using VariablePtr = std::shared_ptr<class Variable>;
 
 class Variable : public Base {
 public:
@@ -373,7 +380,7 @@ protected:
 typedef std::list<VariablePtr> Args;
 typedef std::list<InstructionPtr> Instructions;
 
-using FunctionPtr = std::shared_ptr<Function>;
+using FunctionPtr = std::shared_ptr<class Function>;
 
 class Function : public Variable {
 public:
@@ -403,7 +410,7 @@ private:
     Instructions m_instructions;
 };
 
-typedef std::list<FunctionPtr> Functions;
+using Functions = std::list<FunctionPtr>;
 
 class Module : public Base {
 public:
@@ -644,6 +651,8 @@ private:
     std::string m_name;
     Operands m_args;
 };
+
+using IfPtr = std::shared_ptr<class If>;
 
 class If : public Instruction {
 public:

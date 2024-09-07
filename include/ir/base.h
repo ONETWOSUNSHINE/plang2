@@ -642,7 +642,7 @@ public:
 
     bool isUsed() const { return m_bUsed; }
     void setUsed(bool _bValue) { m_bUsed = _bValue; }
-    static void updateUsed(NodePtr &_pRoot);
+    static void updateUsed(const NodePtr &_pRoot);
 
     virtual NodePtr clone(Cloner&) const {
         auto pCopy = std::make_shared<Param>(*this);

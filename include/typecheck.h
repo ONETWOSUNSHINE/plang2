@@ -111,7 +111,7 @@ private:
 
 using TupleTypePtr = std::shared_ptr<class TupleType>;
 
-class Formula {
+class Formula : std::enable_shared_from_this<Formula> {
 public:
     enum {
         EQUALS          = 0x01,
@@ -188,6 +188,10 @@ public:
 
     virtual bool contains(const ir::TypePtr &_pType) const;
 
+    template <class _Class>
+    std::shared_ptr<_Class> as() const {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
 private:
     int m_kind;
     ir::TypePtr m_pLhs, m_pRhs;

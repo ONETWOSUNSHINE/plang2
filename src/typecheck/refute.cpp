@@ -46,8 +46,8 @@ bool Refute::_run(int & _nResult) {
     return _runCompound(_nResult);
 }
 
-Auto<Operation> Operation::refute() {
-    return new Refute();
+OperationPtr Operation::refute() {
+    return std::make_shared<Refute>();
 }
 
 }

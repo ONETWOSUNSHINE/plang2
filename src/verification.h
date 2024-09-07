@@ -10,7 +10,7 @@
 
 namespace vf {
 
-class Conjunct {
+class Conjunct : public std::enable_shared_from_this<Conjunct>{
 public:
     enum {
         LOGIC,
@@ -24,6 +24,11 @@ public:
     virtual bool hasLogic() const = 0;
     virtual ir::ExpressionPtr mergeToExpression() const = 0;
     virtual void getFreeValues(na::ValuesSet& _container) const = 0;
+
+    template <class _Class>
+    std::shared_ptr<_Class> as() const {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
 };
 using ConjunctPtr = std::shared_ptr<Conjunct>;
 

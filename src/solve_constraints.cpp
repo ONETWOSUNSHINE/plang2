@@ -28,7 +28,7 @@ bool Solver::fork() {
     if (iCF == context()->end())
         return false;
 
-    tc::CompoundFormulaPtr pCF = iCF->as<tc::CompoundFormula>();
+    tc::CompoundFormulaPtr pCF = (*iCF)->as<tc::CompoundFormula>();
 
     context()->erase(iCF);
 
@@ -54,7 +54,7 @@ bool Solver::sequence(int &_result) {
     bool bModified = false;
     bool bIterationModified;
     size_t cStep = 0;
-    std::vector<Auto<tc::Operation> > ops{
+    std::vector<tc::OperationPtr> ops{
         tc::Operation::unify(),
         tc::Operation::lift(),
         tc::Operation::prune(),
@@ -72,7 +72,7 @@ bool Solver::sequence(int &_result) {
     do {
         bIterationModified = false;
 
-        for (const Auto<tc::Operation> & pOperation : ops) {
+        for (const auto& pOperation : ops) {
             if (bIterationModified && pOperation->getRestartIteration())
                 break;
 
@@ -131,7 +131,7 @@ bool Solver::run() {
             CS::push(processed.front());
         else {
             // Recombine all results into a compound formula and simplify it.
-            tc::CompoundFormulaPtr pCF = new tc::CompoundFormula();
+            tc::CompoundFormulaPtr pCF = std::make_shared<tc::CompoundFormula>();
 
             for (std::list<tc::ContextPtr>::iterator i = processed.begin(); i != processed.end(); ++i) {
                 tc::Context &ctx = **i;
@@ -143,10 +143,10 @@ bool Solver::run() {
                 for (tc::Formulas::iterator j = ctx.pSubsts->begin(); j != ctx.pSubsts->end(); ++j) {
                     tc::FormulaPtr pSubst = *j;
 
-                    if (pSubst->getLhs().as<tc::FreshType>()->getFlags() == tc::FreshType::PARAM_IN)
-                        part.insert(new tc::Formula(tc::Formula::SUBTYPE, pSubst->getLhs(), pSubst->getRhs()));
-                    else if (pSubst->getLhs().as<tc::FreshType>()->getFlags() == tc::FreshType::PARAM_OUT)
-                        part.insert(new tc::Formula(tc::Formula::SUBTYPE, pSubst->getRhs(), pSubst->getLhs()));
+                    if (pSubst->getLhs()->as<tc::FreshType>()->getFlags() == tc::FreshType::PARAM_IN)
+                        part.insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, pSubst->getLhs(), pSubst->getRhs()));
+                    else if (pSubst->getLhs()->as<tc::FreshType>()->getFlags() == tc::FreshType::PARAM_OUT)
+                        part.insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, pSubst->getRhs(), pSubst->getLhs()));
                     else
                         part.insert(pSubst);
                 }
@@ -155,7 +155,7 @@ bool Solver::run() {
                 CS::pop();
             }
 
-            CS::push(ptr(new tc::Context()));
+            CS::push(std::make_shared<tc::Context>());
             context()->insert(pCF);
 
             if (Options::instance().bVerbose) {

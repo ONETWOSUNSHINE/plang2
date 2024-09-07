@@ -24,15 +24,15 @@ public:
         Visitor(CHILDREN_FIRST), m_pNode(_pNode), m_pNewNode(_pNewNode), m_pCall(NULL)
     {}
 
-    virtual bool traverseFunctionCall(FunctionCall &_node) {
-        m_pCall = &_node;
+    virtual bool traverseFunctionCall(const FunctionCallPtr &_node) {
+        m_pCall = _node;
         if (m_pNewNode)
             callSetter(m_pNewNode);
         return false;
     }
 
     FunctionCallPtr run() {
-        traverseNode(*m_pNode);
+        traverseNode(m_pNode);
         return m_pCall;
     }
 
@@ -41,26 +41,26 @@ private:
     FunctionCallPtr m_pCall;
 };
 
-CallPtr getCallFromFunctionCall(const FunctionCall &_fCall, const VariableReference &_var) {
-    CallPtr pCall = new ir::Call(_fCall.getPredicate());
-    ir::CallBranchPtr pBranch = new ir::CallBranch();
+CallPtr getCallFromFunctionCall(const FunctionCallPtr &_fCall, const VariableReferencePtr &_var) {
+    const auto pCall = std::make_shared<ir::Call>(_fCall->getPredicate());
+    const auto pBranch = std::make_shared<ir::CallBranch>();
 
-    pCall->getArgs().assign(_fCall.getArgs());
-    pBranch->add(&_var);
+    pCall->getArgs().assign(_fCall->getArgs());
+    pBranch->add(_var);
     pCall->getBranches().add(pBranch);
 
     return pCall;
 }
 
-std::pair<NodePtr, NodePtr> extractFirstCall(const Node& _node) {
-    if (!containsCall(&_node))
-        return std::make_pair(NodePtr(NULL), &_node);
+std::pair<NodePtr, NodePtr> extractFirstCall(const NodePtr& _node) {
+    if (!containsCall(_node))
+        return std::make_pair(NodePtr(), _node);
 
     const NodePtr pNode = clone(_node);
 
     const FunctionCallPtr pFunctionCall = ReplaceCall(pNode, NULL).run();
-    const VariableReferencePtr pVar = new VariableReference(new NamedValue(L"", pFunctionCall->getType()));
-    const CallPtr pCall = getCallFromFunctionCall(*pFunctionCall, *pVar);
+    const VariableReferencePtr pVar = std::make_shared<VariableReference>(std::make_shared<NamedValue>(L"", pFunctionCall->getType()));
+    const CallPtr pCall = getCallFromFunctionCall(pFunctionCall, pVar);
 
     NodePtr pTail = Expression::substitute(pNode, pFunctionCall, pVar);
     return std::make_pair(pCall, pTail);
@@ -81,7 +81,7 @@ StatementPtr modifyStatement(const StatementPtr& _pStatement) {
     top.modifyForVerification();
     top.simplify();
     StatementPtr pStatment = top.mergeForVerification();
-    ExcludeCasts().traverseNode(*pStatment);
+    ExcludeCasts().traverseNode(pStatment);
     return pStatment;
 }
 
@@ -100,7 +100,7 @@ public:
         _decl.getBlock()->clear();
 
         if (pNewStatement->getKind() == Statement::BLOCK)
-            _decl.getBlock()->assign(*pNewStatement.as<Block>());
+            _decl.getBlock()->assign(*pNewStatement->as<Block>().get());
         else
             _decl.getBlock()->add(pNewStatement);
 
@@ -109,16 +109,16 @@ public:
 };
 
 void modifyModule(const ir::ModulePtr& _pModule) {
-    ModifyStatements().traverseNode(*_pModule);
+    ModifyStatements().traverseNode(_pModule);
 }
 
 FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, ArgsMap& _args) {
     if (!_pFormula)
         return NULL;
 
-    FormulaCallPtr pCall = new FormulaCall(_pFormula);
+    FormulaCallPtr pCall = std::make_shared<FormulaCall>(_pFormula);
     for (size_t i = 0; i < _pFormula->getParams().size(); ++i) {
-        const ExpressionPtr pArg = _args.getExpression(*_pFormula->getParams().get(i));
+        const ExpressionPtr pArg = _args.getExpression(_pFormula->getParams().get(i));
         assert(pArg);
         pCall->getArgs().add(pArg);
     }
@@ -130,11 +130,11 @@ FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const NamedV
     if (!_pFormula)
         return NULL;
 
-    FormulaCallPtr pCall = new FormulaCall(_pFormula);
+    FormulaCallPtr pCall = std::make_shared<FormulaCall>(_pFormula);
     for (size_t i = 0; i < _pFormula->getParams().size(); ++i) {
         const size_t cIdx = _params.findIdx(*_pFormula->getParams().get(i));
         assert(cIdx != (size_t)-1);
-        pCall->getArgs().add(new VariableReference(_params.get(cIdx)));
+        pCall->getArgs().add(std::make_shared<VariableReference>(_params.get(cIdx)));
     }
 
     return pCall;
@@ -174,7 +174,7 @@ bool FormulasCollector::traverseFormulaCall(FormulaCall& _call) {
     if (!m_pTraversedFormulas.insert(_call.getTarget()).second)
         return true;
 
-    traverseNode(*_call.getTarget());
+    traverseNode(_call.getTarget());
 
     return true;
 }
@@ -182,8 +182,8 @@ bool FormulasCollector::traverseFormulaCall(FormulaCall& _call) {
 void declareLemma(const ExpressionPtr& _pProposition, std::set<FormulaDeclarationPtr>& _declarations,
     const ModulePtr& _pModule)
 {
-    FormulasCollector(_declarations).traverseNode(*_pProposition);
-    _pModule->getLemmas().add(new LemmaDeclaration(_pProposition, new Label(L"")));
+    FormulasCollector(_declarations).traverseNode(_pProposition);
+    _pModule->getLemmas().add(std::make_shared<LemmaDeclaration>(_pProposition, std::make_shared<Label>(L"")));
 }
 
 typedef std::map<TypePtr, NamedReferenceTypePtr, PtrLess<Type>> TypesMap;
@@ -194,38 +194,38 @@ public:
         Visitor(CHILDREN_FIRST), m_container(_container)
     {}
 
-    virtual bool traverseModule(Module& _module) {
+    virtual bool traverseModule(const ModulePtr& _module) {
         TypesMap last;
         last.swap(m_container);
 
         const bool bResult = Visitor::traverseModule(_module);
 
         for (auto i: m_container)
-            _module.getTypes().add(i.second->getDeclaration());
+            _module->getTypes().add(i.second->getDeclaration());
 
         m_container.swap(last);
         return bResult;
     }
 
-    virtual bool visitType(Type& _type) {
+    virtual bool visitType(const TypePtr& _type) {
         if (getParent() && getParent()->getNodeKind() == Node::STATEMENT &&
-            ((Statement*)getParent())->getKind() == Statement::TYPE_DECLARATION)
+            getParent()->as<Statement>()->getKind() == Statement::TYPE_DECLARATION)
             return true;
 
-        if (_type.getKind() < Type::ENUM
-            || _type.getKind() == Type::NAMED_REFERENCE)
+        if (_type->getKind() < Type::ENUM
+            || _type->getKind() == Type::NAMED_REFERENCE)
             return true;
 
-        if (_type.getKind() == Type::ARRAY && getRole() == R_ArrayBaseType)
+        if (_type->getKind() == Type::ARRAY && getRole() == R_ArrayBaseType)
             return true;
 
         NamedReferenceTypePtr pReference;
 
-        auto iReference = m_container.find(&_type);
+        auto iReference = m_container.find(_type);
         if (iReference == m_container.end()) {
-            TypeDeclarationPtr pDedclaration = new TypeDeclaration(L"", &_type);
-            pReference = new NamedReferenceType(pDedclaration);
-            m_container.insert(std::make_pair(&_type, pReference));
+            TypeDeclarationPtr pDedclaration = std::make_shared<TypeDeclaration>(L"", &_type);
+            pReference = std::make_shared<NamedReferenceType>(pDedclaration);
+            m_container.insert(std::make_pair(_type, pReference));
         } else
             pReference = iReference->second;
 
@@ -240,7 +240,7 @@ private:
 
 void moveOutStructuredTypes(const ir::ModulePtr& _pModule) {
     TypesMap container;
-    MoveOutStructuredTypes(container).traverseNode(*_pModule);
+    MoveOutStructuredTypes(container).traverseNode(_pModule);
 }
 
 typedef std::map<ExpressionPtr, FormulaDeclarationPtr, PtrLess<Expression>> ExpressionMap;
@@ -251,14 +251,14 @@ public:
         Visitor(CHILDREN_FIRST), m_container(_container)
     {}
 
-    virtual bool traverseModule(Module& _module) {
+    virtual bool traverseModule(const ModulePtr& _module) {
         ExpressionMap last;
         last.swap(m_container);
 
         const bool bResult = Visitor::traverseModule(_module);
 
         for (auto i: m_container)
-            _module.getFormulas().add(i.second);
+            _module->getFormulas().add(i.second);
 
         m_container.swap(last);
         return bResult;
@@ -268,36 +268,36 @@ public:
         return true;
     }
 
-    void moveOut(Expression& _expr) {
+    void moveOut(const ExpressionPtr& _expr) {
         NamedValues params;
 
         // TODO: Should use lexical context instead of collect values.
-        na::collectValues(&_expr, params);
+        na::collectValues(_expr, params);
 
-        auto iReference = m_container.find(&_expr);
+        auto iReference = m_container.find(_expr);
         const FormulaDeclarationPtr
             pFormula = iReference == m_container.end() ?
-                declareFormula(L"", &_expr) : iReference->second;
+                declareFormula(L"", _expr) : iReference->second;
 
         if (iReference == m_container.end())
-            m_container.insert(std::make_pair(&_expr, pFormula));
+            m_container.insert(std::make_pair(_expr, pFormula));
 
         callSetter(makeCall(pFormula, params));
     }
 
-    virtual bool visitReplacement(Replacement& _expr) {
-        if (_expr.getNewValues()->getConstructorKind() == Constructor::ARRAY_ITERATION)
+    virtual bool visitReplacement(const ReplacementPtr& _expr) {
+        if (_expr->getNewValues()->getConstructorKind() == Constructor::ARRAY_ITERATION)
             moveOut(_expr);
         return true;
     }
 
-    virtual bool visitArrayIteration(ArrayIteration &_expr) {
+    virtual bool visitArrayIteration(const ArrayIterationPtr &_expr) {
         if (getRole() != R_ReplacementValue)
             moveOut(_expr);
         return true;
     }
 
-    virtual bool visitArrayConstructor(ArrayConstructor &_expr) {
+    virtual bool visitArrayConstructor(const ArrayConstructorPtr &_expr) {
         moveOut(_expr);
         return true;
     }
@@ -308,7 +308,7 @@ private:
 
 void moveOutExpressions(const ir::ModulePtr& _pModule) {
     ExpressionMap container;
-    MoveOutExpressions(container).traverseNode(*_pModule);
+    MoveOutExpressions(container).traverseNode(_pModule);
 }
 
 class Instantiate : public Visitor {
@@ -321,11 +321,11 @@ public:
     TypePtr getFromType(const TypeDeclarationPtr& _pType);
     TypePtr getFromFreshType(const TypePtr& _pType);
 
-    virtual bool visitVariableReference(VariableReference& _var);
-    virtual bool visitNamedReferenceType(NamedReferenceType& _type);
-    virtual bool visitType(Type& _type);
+    virtual bool visitVariableReference(const VariableReferencePtr& _var);
+    virtual bool visitNamedReferenceType(const NamedReferenceTypePtr& _type);
+    virtual bool visitType(const TypePtr& _type);
 
-    virtual bool traverseNamedValue(NamedValue& _node);
+    virtual bool traverseNamedValue(const NamedValuePtr& _node);
 
 private:
     const NamedValues &m_params;
@@ -343,8 +343,8 @@ TypePtr Instantiate::getFromType(const TypeDeclarationPtr& _pType) {
     for (size_t i = 0; i < m_params.size(); ++i) {
         if (m_params.get(i)->getType()
             && m_params.get(i)->getType()->getKind() == Type::TYPE
-            && m_params.get(i)->getType().as<TypeType>()->getDeclaration() == _pType)
-            return m_args.get(i).as<TypeExpr>()->getContents();
+            && m_params.get(i)->getType()->as<TypeType>()->getDeclaration() == _pType)
+            return m_args.get(i)->as<TypeExpr>()->getContents();
     }
     return NULL;
 }
@@ -353,44 +353,44 @@ TypePtr Instantiate::getFromFreshType(const TypePtr& _pType) {
     for (size_t i = 0; i < m_params.size(); ++i) {
         if (m_params.get(i)->getType()
             && m_params.get(i)->getType()->getKind() == Type::TYPE
-            && m_params.get(i)->getType().as<TypeType>()->getDeclaration()
-            && m_params.get(i)->getType().as<TypeType>()->getDeclaration()->getType() == _pType)
-            return m_args.get(i).as<TypeExpr>()->getContents();
+            && m_params.get(i)->getType()->as<TypeType>()->getDeclaration()
+            && m_params.get(i)->getType()->as<TypeType>()->getDeclaration()->getType() == _pType)
+            return m_args.get(i)->as<TypeExpr>()->getContents();
     }
     return NULL;
 }
 
-bool Instantiate::visitVariableReference(VariableReference& _var) {
-    if (!_var.getTarget())
+bool Instantiate::visitVariableReference(const VariableReferencePtr& _var) {
+    if (!_var->getTarget())
         return true;
-    const ExpressionPtr pExpr = getExpression(_var.getTarget());
+    const auto pExpr = getExpression(_var->getTarget());
     if (!pExpr)
         return true;
     callSetter(pExpr);
     return true;
 }
 
-bool Instantiate::visitNamedReferenceType(NamedReferenceType& _type) {
-    if (!_type.getDeclaration())
+bool Instantiate::visitNamedReferenceType(const NamedReferenceTypePtr& _type) {
+    if (!_type->getDeclaration())
         return true;
-    const TypePtr pType = getFromType(_type.getDeclaration());
+    const auto pType = getFromType(_type->getDeclaration());
     if (!pType)
         return true;
     callSetter(pType);
     return true;
 }
 
-bool Instantiate::visitType(Type& _type) {
-    if (_type.getKind() != Type::FRESH)
+bool Instantiate::visitType(const TypePtr& _type) {
+    if (_type->getKind() != Type::FRESH)
         return true;
-    const TypePtr pType = getFromFreshType(&_type);
+    const auto pType = getFromFreshType(_type);
     if (!pType)
         return true;
     callSetter(pType);
     return true;
 }
 
-bool Instantiate::traverseNamedValue(NamedValue& _node) {
+bool Instantiate::traverseNamedValue(const NamedValuePtr& _node) {
     if (getLoc().role != R_ModuleParam)
         return Visitor::traverseNamedValue(_node);
     return true;
@@ -399,7 +399,7 @@ bool Instantiate::traverseNamedValue(NamedValue& _node) {
 void instantiateModule(const ModulePtr& _pModule, const Collection<Expression>& _args) {
     if (_pModule->getParams().empty())
         return;
-    Instantiate(_pModule->getParams(), _args).traverseNode(*_pModule);
+    Instantiate(_pModule->getParams(), _args).traverseNode(_pModule);
 }
 
 class Normalizer : public Visitor {
@@ -411,7 +411,7 @@ public:
 
     static void extractBinaryOperands(const BinaryPtr& _pBinary, int _nOperator,
             const TypePtr & _pType, Operands& _container, bool _bIgnoreTypes, bool _bFirst);
-    virtual bool visitBinary(Binary& _bin);
+    virtual bool visitBinary(const BinaryPtr& _bin);
 
     NodePtr run();
 
@@ -442,7 +442,7 @@ void Normalizer::extractBinaryOperands(const BinaryPtr& _pBinary,
 
     if (_pBinary->getLeftSide()) {
         if (_pBinary->getLeftSide()->getKind() == Expression::BINARY)
-            extractBinaryOperands(_pBinary->getLeftSide().as<Binary>(),
+            extractBinaryOperands(_pBinary->getLeftSide()->as<Binary>(),
                     _nOperator, _pType, _container, _bIgnoreTypes, false);
         else
             _container.insert(_pBinary->getLeftSide());
@@ -450,41 +450,41 @@ void Normalizer::extractBinaryOperands(const BinaryPtr& _pBinary,
 
     if (_pBinary->getRightSide()) {
         if (_pBinary->getRightSide()->getKind() == Expression::BINARY)
-            extractBinaryOperands(_pBinary->getRightSide().as<Binary>(),
+            extractBinaryOperands(_pBinary->getRightSide()->as<Binary>(),
                     _nOperator, _pType, _container, _bIgnoreTypes, false);
         else
             _container.insert(_pBinary->getRightSide());
     }
 }
 
-bool Normalizer::visitBinary(Binary& _bin) {
-    if (!_canContinueNormalize(_bin.getOperator(), _bin.getOperator(),
+bool Normalizer::visitBinary(const BinaryPtr& _bin) {
+    if (!_canContinueNormalize(_bin->getOperator(), _bin->getOperator(),
             nullptr, nullptr, nullptr, true))
         return true;
 
-    const Node* pParent = getParent();
+    const auto pParent = getParent();
 
     if (pParent &&
             pParent->getNodeKind() == Node::EXPRESSION &&
-            ((Expression*)pParent)->getKind() == Expression::BINARY)
+            pParent->as<Expression>()->getKind() == Expression::BINARY)
     {
-        const BinaryPtr pPrevBinary = ((Binary*)pParent);
-        if (_canContinueNormalize(pPrevBinary->getOperator(), _bin.getOperator(),
+        const auto pPrevBinary = pParent->as<Binary>();
+        if (_canContinueNormalize(pPrevBinary->getOperator(), _bin->getOperator(),
                 pPrevBinary->getType(),
-                _bin.getLeftSide() ? _bin.getLeftSide()->getType() : nullptr,
-                _bin.getRightSide() ? _bin.getRightSide()->getType() : nullptr,
+                _bin->getLeftSide() ? _bin->getLeftSide()->getType() : nullptr,
+                _bin->getRightSide() ? _bin->getRightSide()->getType() : nullptr,
                 m_bIgnoreTypes))
             return true;
     }
 
-    BinaryPtr pBin = &_bin;
+    BinaryPtr pBin = _bin;
     Operands operands;
 
     extractBinaryOperands(pBin, pBin->getOperator(), pBin->getType(),
             operands, m_bIgnoreTypes, true);
-    pBin = new Binary(pBin->getOperator(), operands);
+    pBin = std::make_shared<Binary>(pBin->getOperator(), operands);
 
-    if (m_pRoot.ptr() == &_bin)
+    if (m_pRoot == _bin)
         m_pRoot = pBin;
     else
         callSetter(pBin);
@@ -527,7 +527,7 @@ bool Normalizer::_canContinueNormalize(int _nPrevOperator, int _nOperator,
 }
 
 NodePtr Normalizer::run() {
-    traverseNode(*m_pRoot);
+    traverseNode(m_pRoot);
     return m_pRoot;
 }
 
@@ -543,46 +543,46 @@ ExpressionPtr conjunctiveNormalForm(const ExpressionPtr& _pExpr) {
 
     struct{ ExpressionPtr pFrom, pTo; } rules[] = {
         // Rule 1.1: A -> B  =>  !A or B
-        new Binary(Binary::IMPLIES, new Wild(L"a"), new Wild(L"b")),
-        new Binary(Binary::BOOL_OR, new Unary(Unary::BOOL_NEGATE, new Wild(L"a")), new Wild(L"b")),
+        std::make_shared<Binary>(Binary::IMPLIES, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"b")),
+        std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"a")), std::make_shared<Wild>(L"b")),
 
         // Rule 1.2: A <-> B => (!A or B) and (A or !B)
-        new Binary(Binary::IFF, new Wild(L"a"), new Wild(L"b")),
-        new Binary(Binary::BOOL_AND,
-            new Binary(Binary::BOOL_OR, new Unary(Unary::BOOL_NEGATE, new Wild(L"a")), new Wild(L"b")),
-            new Binary(Binary::BOOL_OR, new Wild(L"b"), new Unary(Unary::BOOL_NEGATE, new Wild(L"b")))),
+        std::make_shared<Binary>(Binary::IFF, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"b")),
+        std::make_shared<Binary>(Binary::BOOL_AND,
+            std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"a")), std::make_shared<Wild>(L"b")),
+            std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Wild>(L"b"), std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"b")))),
 
         // Rule 2.1: !(A or B) => !A and !B
-        new Unary(Unary::BOOL_NEGATE, new Binary(Binary::BOOL_OR, new Wild(L"a"), new Wild(L"b"))),
-        new Binary(Binary::BOOL_AND,
-            new Unary(Unary::BOOL_NEGATE, new Wild(L"a")),
-            new Unary(Unary::BOOL_NEGATE, new Wild(L"b"))),
+        std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"b"))),
+        std::make_shared<Binary>(Binary::BOOL_AND,
+            std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"a")),
+            std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"b"))),
 
         // Rule 2.2: !(A and B) => !A or !B
-        new Unary(Unary::BOOL_NEGATE, new Binary(Binary::BOOL_AND, new Wild(L"a"), new Wild(L"b"))),
-        new Binary(Binary::BOOL_OR,
-            new Unary(Unary::BOOL_NEGATE, new Wild(L"a")),
-            new Unary(Unary::BOOL_NEGATE, new Wild(L"b"))),
+        std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Binary>(Binary::BOOL_AND, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"b"))),
+        std::make_shared<Binary>(Binary::BOOL_OR,
+            std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"a")),
+            std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"b"))),
 
         // Rule 3: !!A => A
-        new Unary(Unary::BOOL_NEGATE, new Unary(Unary::BOOL_NEGATE, new Wild(L"a"))),
-        new Wild(L"a"),
+        std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Unary>(Unary::BOOL_NEGATE, std::make_shared<Wild>(L"a"))),
+        std::make_shared<Wild>(L"a"),
 
         // Rule 4.1: A or (B and C) => (A or B) and (A or C)
-        new Binary(Binary::BOOL_OR,
-            new Wild(L"a"),
-            new Binary(Binary::BOOL_AND, new Wild(L"b"), new Wild(L"c"))),
-        new Binary(Binary::BOOL_AND,
-            new Binary(Binary::BOOL_OR, new Wild(L"a"), new Wild(L"b")),
-            new Binary(Binary::BOOL_OR, new Wild(L"a"), new Wild(L"c"))),
+        std::make_shared<Binary>(Binary::BOOL_OR,
+            std::make_shared<Wild>(L"a"),
+            std::make_shared<Binary>(Binary::BOOL_AND, std::make_shared<Wild>(L"b"), std::make_shared<Wild>(L"c"))),
+        std::make_shared<Binary>(Binary::BOOL_AND,
+            std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"b")),
+            std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"c"))),
 
         // Rule 4.2: (A and B) or (A and C) => A and (B or C)
-        new Binary(Binary::BOOL_OR,
-            new Binary(Binary::BOOL_AND, new Wild(L"a"), new Wild(L"b")),
-            new Binary(Binary::BOOL_AND, new Wild(L"a"), new Wild(L"c"))),
-        new Binary(Binary::BOOL_AND,
-            new Wild(L"a"),
-            new Binary(Binary::BOOL_OR, new Wild(L"b"), new Wild(L"c"))),
+        std::make_shared<Binary>(Binary::BOOL_OR,
+            std::make_shared<Binary>(Binary::BOOL_AND, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"b")),
+            std::make_shared<Binary>(Binary::BOOL_AND, std::make_shared<Wild>(L"a"), std::make_shared<Wild>(L"c"))),
+        std::make_shared<Binary>(Binary::BOOL_AND,
+            std::make_shared<Wild>(L"a"),
+            std::make_shared<Binary>(Binary::BOOL_OR, std::make_shared<Wild>(L"b"), std::make_shared<Wild>(L"c"))),
 
         // End.
         ExpressionPtr(), ExpressionPtr()
@@ -591,7 +591,7 @@ ExpressionPtr conjunctiveNormalForm(const ExpressionPtr& _pExpr) {
     auto mutate = [&] (const ExpressionPtr& _pOrigin) {
         ExpressionPtr pExpr = clone(_pOrigin);
         for (size_t i = 0; rules[i].pFrom; ++i)
-            pExpr = Expression::substitute(pExpr, rules[i].pFrom, rules[i].pTo).as<Expression>();
+            pExpr = Expression::substitute(pExpr, rules[i].pFrom, rules[i].pTo)->as<Expression>();
         return pExpr;
     };
 

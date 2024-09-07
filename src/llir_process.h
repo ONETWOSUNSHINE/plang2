@@ -135,8 +135,8 @@ public:
     virtual void processCast(Cast & _instr);
 
 private:
-    args_t m_ptrs;
-    Operand m_op;
+    args_t m_ptrs;        const auto qqq = _module->getPredicates();
+
 };*/
 
 class CollapseLabels : public ProcessLL {

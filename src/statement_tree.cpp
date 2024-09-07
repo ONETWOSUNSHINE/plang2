@@ -63,11 +63,11 @@ void StmtVertex::expand() {
         i->expand();
 }
 
-void StmtVertex::modifyIf(const If& _if) {
-    if (!_if.getArg() || !containsCall(_if.getArg()))
+void StmtVertex::modifyIf(const IfPtr& _if) {
+    if (!_if->getArg() || !containsCall(_if->getArg()))
         return;
 
-    std::pair<NodePtr, NodePtr> newArg = extractFirstCall(*_if.getArg());
+    std::pair<NodePtr, NodePtr> newArg = extractFirstCall(_if->getArg());
     if (!newArg.first)
         return;
 
@@ -80,7 +80,7 @@ void StmtVertex::modifyIf(const If& _if) {
     m_pStmt = std::make_shared<Block>();
 }
 
-void StmtVertex::modifyCall(const Call& _call) {
+void StmtVertex::modifyCall(const CallPtr& _call) {
     assert(m_children.empty());
 
     std::pair<NodePtr, NodePtr> newCall = extractFirstCall(_call);
@@ -135,11 +135,11 @@ static ExpressionPtr _getCondition(const ExpressionPtr _pArg, const Collection<E
     return pCondition;
 }
 
-void StmtVertex::modifySwitch(const Switch& _switch) {
-    if (_switch.empty() && !_switch.getDefault())
+void StmtVertex::modifySwitch(const SwitchPtr& _switch) {
+    if (_switch->empty() && !_switch->getDefault())
         return;
-    if (_switch.empty()) {
-        m_pStmt = _switch.getDefault();
+    if (_switch->empty()) {
+        m_pStmt = _switch->getDefault();
         return;
     }
 
@@ -152,20 +152,20 @@ void StmtVertex::modifySwitch(const Switch& _switch) {
     this->appendChild(children.front());
 
     std::list<StmtVertexPtr>::iterator j = ++(children.begin());
-    for (size_t i = 1; i < _switch.size(); ++i, ++j) {
-        pNewVertex = std::make_shared<StmtVertex>(std::make_shared<If>(_getCondition(_switch.getArg(), _switch.get(i)->getExpressions())));
+    for (size_t i = 1; i < _switch->size(); ++i, ++j) {
+        pNewVertex = std::make_shared<StmtVertex>(std::make_shared<If>(_getCondition(_switch->getArg(), _switch->get(i)->getExpressions())));
         pNewVertex->appendChild(*j);
         pParentVertex->appendChild(pNewVertex);
         pParentVertex = pNewVertex;
     }
 
-    if (_switch.getDefault())
-        pNewVertex->appendChild(std::make_shared<StmtVertex>(_switch.getDefault()));
+    if (_switch->getDefault())
+        pNewVertex->appendChild(std::make_shared<StmtVertex>(_switch->getDefault()));
 
-    this->m_pStmt = std::make_shared<If>(_getCondition(_switch.getArg(), _switch.get(0)->getExpressions()));
+    this->m_pStmt = std::make_shared<If>(_getCondition(_switch->getArg(), _switch->get(0)->getExpressions()));
 }
 
-void StmtVertex::modifyAssignment(const Assignment& _assignment) {
+void StmtVertex::modifyAssignment(const AssignmentPtr& _assignment) {
     assert(m_children.empty());
 
     std::pair<NodePtr, NodePtr> newAssignment = extractFirstCall(_assignment);
@@ -177,34 +177,34 @@ void StmtVertex::modifyAssignment(const Assignment& _assignment) {
     m_pStmt = std::make_shared<Block>();
 }
 
-void StmtVertex::modifyMultiAssignment(const Multiassignment& _massignment) {
+void StmtVertex::modifyMultiAssignment(const MultiassignmentPtr& _massignment) {
     assert(m_children.empty());
 
-    if (_massignment.getLValues().empty())
+    if (_massignment->getLValues().empty())
         return;
-    if (_massignment.getLValues().size() == 1) {
-        AssignmentPtr pAssignment = std::make_shared<Assignment>(_massignment.getLValues().get(0), _massignment.getExpressions().get(0));
+    if (_massignment->getLValues().size() == 1) {
+        AssignmentPtr pAssignment = std::make_shared<Assignment>(_massignment->getLValues().get(0), _massignment->getExpressions().get(0));
         appendChild(std::make_shared<StmtVertex>(pAssignment));
         m_pStmt = std::make_shared<ParallelBlock>();
         return;
     }
 
-    for(size_t i = 0; i < _massignment.getLValues().size(); ++i) {
-        AssignmentPtr pAssignment = std::make_shared<Assignment>(_massignment.getLValues().get(i), _massignment.getExpressions().get(i));
+    for(size_t i = 0; i < _massignment->getLValues().size(); ++i) {
+        AssignmentPtr pAssignment = std::make_shared<Assignment>(_massignment->getLValues().get(i), _massignment->getExpressions().get(i));
         appendChild(std::make_shared<StmtVertex>(pAssignment));
     }
     m_pStmt = std::make_shared<ParallelBlock>();
 }
 
-void StmtVertex::modifyVariableDeclaration(const VariableDeclaration& _decl) {
+void StmtVertex::modifyVariableDeclaration(const VariableDeclarationPtr& _decl) {
     assert(m_children.empty());
-    if (!_decl.getValue())
+    if (!_decl->getValue())
         return;
-    AssignmentPtr pAssignment = std::make_shared<Assignment>(std::make_shared<VariableReference>(_decl.getVariable()), _decl.getValue());
+    AssignmentPtr pAssignment = std::make_shared<Assignment>(std::make_shared<VariableReference>(_decl->getVariable()), _decl->getValue());
     appendChild(std::make_shared<StmtVertex>(pAssignment));
 }
 
-void StmtVertex::modifyVariableDeclarationGroup(const VariableDeclarationGroup& _vdg) {
+void StmtVertex::modifyVariableDeclarationGroup(const VariableDeclarationGroupPtr& _vdg) {
     m_pStmt = std::make_shared<Block>();
 }
 
@@ -214,25 +214,25 @@ void StmtVertex::modifyForVerification() {
 
     switch(m_pStmt->getKind()) {
         case Statement::IF:
-            modifyIf(*m_pStmt->as<If>());
+            modifyIf(m_pStmt->as<If>());
             break;
         case Statement::CALL:
-            modifyCall(*m_pStmt->as<Call>());
+            modifyCall(m_pStmt->as<Call>());
             break;
         case Statement::SWITCH:
-            modifySwitch(*m_pStmt->as<Switch>());
+            modifySwitch(m_pStmt->as<Switch>());
             break;
         case Statement::ASSIGNMENT:
-            modifyAssignment(*m_pStmt->as<Assignment>());
+            modifyAssignment(m_pStmt->as<Assignment>());
             break;
         case Statement::MULTIASSIGNMENT:
-            modifyMultiAssignment(*m_pStmt->as<Multiassignment>());
+            modifyMultiAssignment(m_pStmt->as<Multiassignment>());
             break;
         case Statement::VARIABLE_DECLARATION:
-            modifyVariableDeclaration(*m_pStmt->as<VariableDeclaration>());
+            modifyVariableDeclaration(m_pStmt->as<VariableDeclaration>());
             break;
         case Statement::VARIABLE_DECLARATION_GROUP:
-            modifyVariableDeclarationGroup(*m_pStmt->as<VariableDeclarationGroup>());
+            modifyVariableDeclarationGroup(m_pStmt->as<VariableDeclarationGroup>());
             break;
     }
 

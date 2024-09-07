@@ -92,7 +92,7 @@ int main(int _argc, const char ** _argv) {
             resetNames(*pModule);
 
         try {
-            ir::CheckAssignments().traverseNode(*pModule);
+            ir::CheckAssignments().traverseNode(pModule);
         } catch (std::runtime_error &e) {
             std::cerr << strFile << ": " << e.what() << std::endl;
             return EXIT_FAILURE;
@@ -131,7 +131,7 @@ int main(int _argc, const char ** _argv) {
             prettyPrint(*pModule, std::wcout);
 
         if (Options::instance().prettyPrint & PP_SYNTAX)
-            pp::prettyPrintSyntax(*pModule, std::wcout, NULL, true);
+            pp::prettyPrintSyntax(pModule, std::wcout, NULL, true);
 
         if (Options::instance().prettyPrint & PP_CALLGRAPH)
             printModuleSCCCallGraph(*pModule, std::wcout);
@@ -143,10 +143,10 @@ int main(int _argc, const char ** _argv) {
             std::string strOut = Options::instance().strOutputFilename;
             if (!strOut.empty()) {
                 std::wofstream ofs(strOut.c_str());
-                generatePvs(*pModule, ofs);
+                generatePvs(pModule, ofs);
             }
             else
-                generatePvs(*pModule);
+                generatePvs(pModule);
             return EXIT_SUCCESS;
         }
 

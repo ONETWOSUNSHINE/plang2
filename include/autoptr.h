@@ -39,14 +39,14 @@ public:
 
     template<class _Obj>
     void inject(const std::shared_ptr<_Obj>& _pNew) {
-        m_cache[_getHandle(_pNew.get())] = _pNew.m_pObj;
+        m_cache[_getHandle(_pNew.get())] = _pNew;
     }
 
     template<class _Obj>
     void inject(const std::shared_ptr<_Obj>& _pNew, const std::shared_ptr<_Obj>& _pOld) {
         const int nHandle = _getHandle(_pNew.get());
         _mergeHandles(nHandle, _getHandle(_pOld.get()));
-        m_cache[nHandle] = _pNew.m_pObj;
+        m_cache[nHandle] = _pNew;
     }
 
     template<class _Obj>
@@ -77,7 +77,7 @@ void* operator new(size_t _cSize, Cloner& _cloner, const void* _pOriginal);
 template<typename _Obj>
 inline std::shared_ptr<_Obj> clone(const _Obj& _obj) {
     Cloner cloner;
-    return cloner.get(&_obj);
+    return cloner.get(_obj.template as<_Obj>());
 }
 
 template<typename _Obj>

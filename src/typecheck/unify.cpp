@@ -50,7 +50,7 @@ bool Unify::_run(int & _nResult) {
             if (_context().rewrite(pOld, pNew))
                 bModified = true;
 
-            _context().pSubsts->insert(new tc::Formula(tc::Formula::EQUALS, pOld, pNew));
+            _context().pSubsts->insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS, pOld, pNew));
             bModified |= !bCompound; // Subformulas of compound formulas don't store their substs separately.
         }
     }
@@ -61,8 +61,8 @@ bool Unify::_run(int & _nResult) {
     return _runCompound(_nResult) || bModified;
 }
 
-Auto<Operation> Operation::unify() {
-    return new Unify();
+OperationPtr Operation::unify() {
+    return std::make_shared<Unify>();
 }
 
 }

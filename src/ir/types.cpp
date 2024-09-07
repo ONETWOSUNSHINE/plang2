@@ -141,7 +141,7 @@ int Type::compare(const Type &_other) const {
         return getKind() == _other.getKind() ? ORD_EQUALS : ORD_SUPER;
 
     if (getKind() == FRESH || _other.getKind() == FRESH) {
-        if (contains(&_other) || _other.contains(this))
+        if (contains(_other.as<Type>()) || _other.contains(as<Type>()))
             return ORD_NONE;
         return ORD_UNKNOWN;
     }
@@ -248,8 +248,8 @@ int maxBitsIntNat(int _bitsInt, int _bitsNat) {
         return std::make_pair(_other, false);
 
     if (getKind() == FRESH || _other->getKind() == FRESH) {
-        const auto fresh = getKind() == FRESH ? shared_from_this() : _other;
-        const auto other = getKind() == FRESH ? _other : shared_from_this();
+        const auto fresh = getKind() == FRESH ? as<Type>() : _other;
+        const auto other = getKind() == FRESH ? _other : as<Type>();
 
         if (other->contains(fresh))
             return std::make_pair(std::make_shared<Type>(TOP), false);
@@ -257,7 +257,7 @@ int maxBitsIntNat(int _bitsInt, int _bitsNat) {
         return std::make_pair(TypePtr(), false);
     }
 
-    const int nOrd = compare(_other);
+    const int nOrd = compare(*_other.get());
 
     if ((nOrd & ORD_SUB) && !(nOrd & ~(ORD_SUB | ORD_EQUALS)))
         return std::make_pair(_other, false);
@@ -295,16 +295,16 @@ int maxBitsIntNat(int _bitsInt, int _bitsNat) {
         return std::make_pair(shared_from_this()->as<Type>(), false);
 
     if (getKind() == FRESH || _other->getKind() == FRESH) {
-        const auto fresh = getKind() == FRESH ? shared_from_this() : _other;
-        const auto other = getKind() == FRESH ? _other : shared_from_this();
+        const auto fresh = getKind() == FRESH ? as<Type>() : _other;
+        const auto other = getKind() == FRESH ? _other : as<Type>();
 
-        if (other->contains(&fresh))
+        if (other->contains(fresh))
             return std::make_pair(std::make_shared<Type>(BOTTOM), false);
 
         return std::make_pair(TypePtr(), false);
     }
 
-    const int nOrd = compare(_other);
+    const int nOrd = compare(*_other.get());
 
     if ((nOrd & (ORD_SUB | ORD_EQUALS)) && !(nOrd & ~(ORD_SUB | ORD_EQUALS)))
         return std::make_pair(shared_from_this()->as<Type>(), false);
@@ -351,7 +351,7 @@ RangePtr Subtype::asRange() const {
     pMask->getLeftSide()->setType(std::make_shared<Type>(Type::BOOL));
     pMask->getRightSide()->setType(std::make_shared<Type>(Type::BOOL));
 
-    if (!Expression::matches(getExpression(), pMask->as<Expression>(), &matches))
+    if (!Expression::matches(getExpression(), pMask->as<Expression>(), matches.as<Matches>()))
         return NULL;
     return std::make_shared<Range>(matches.getExprByName(L"a"), matches.getExprByName(L"b"));
 }

@@ -16,39 +16,39 @@ class BannedNodesFinder : public Visitor {
 public:
     BannedNodesFinder() : m_bResult(false) {}
 
-    virtual bool traverseFormulaDeclaration(FormulaDeclaration& _formula) {
+    virtual bool traverseFormulaDeclaration(const FormulaDeclarationPtr& _formula) {
         // FIXME Mutual recursion is not detected.
-        m_formulas.insert(&_formula);
+        m_formulas.insert(_formula);
 
         const bool bResult = Visitor::traverseFormulaDeclaration(_formula);
 
-        m_formulas.erase(&_formula);
+        m_formulas.erase(_formula);
 
         return bResult;
     }
 
-    virtual bool traverseFormulaCall(FormulaCall& _formulaCall) {
-        if (!_formulaCall.getTarget())
+    virtual bool traverseFormulaCall(const FormulaCallPtr& _formulaCall) {
+        if (!_formulaCall->getTarget())
             return true;
-        if (m_formulas.find(_formulaCall.getTarget()) != m_formulas.end()) {
+        if (m_formulas.find(_formulaCall->getTarget()) != m_formulas.end()) {
             m_bResult = true;
             return false;
         }
-        return traverseNode(*_formulaCall.getTarget());
+        return traverseNode(_formulaCall->getTarget());
     }
 
-    virtual bool visitFormula(Formula& _formula) {
-        m_bResult |= (_formula.getQuantifier() == Formula::EXISTENTIAL);
+    virtual bool visitFormula(const FormulaPtr& _formula) {
+        m_bResult |= (_formula->getQuantifier() == Formula::EXISTENTIAL);
         return !m_bResult;
     }
 
-    virtual bool visitType(Type& _type) {
-        m_bResult |= (_type.getKind() == Type::FRESH);
+    virtual bool visitType(const TypePtr& _type) {
+        m_bResult |= (_type->getKind() == Type::FRESH);
         return !m_bResult;
     }
 
     bool run(const NodePtr& _pNode) {
-        traverseNode(*_pNode);
+        traverseNode(_pNode);
         return m_bResult;
     }
 
@@ -63,17 +63,17 @@ bool containsBannedNodes(const NodePtr& _pNode) {
 
 class FunctionCallFinder : public Visitor {
 public:
-    FunctionCallFinder(const Node& _node) :
-        m_pNode(&_node), m_bResult(false)
+    FunctionCallFinder(const NodePtr& _node) :
+        m_pNode(_node), m_bResult(false)
     {}
 
-    virtual bool traverseFunctionCall(FunctionCall &_node) {
+    virtual bool traverseFunctionCall(const FunctionCallPtr &_node) {
         m_bResult = true;
         return false;
     }
 
     bool run() {
-        traverseNode(*m_pNode);
+        traverseNode(m_pNode);
         return m_bResult;
     }
 
@@ -82,10 +82,10 @@ private:
     bool m_bResult;
 };
 
-bool containsCall(NodePtr _pNode) {
+bool containsCall(const NodePtr& _pNode) {
     if (!_pNode)
         return false;
-    FunctionCallFinder fcf(*_pNode);
+    FunctionCallFinder fcf(_pNode);
     return fcf.run();
 }
 
@@ -95,45 +95,45 @@ public:
         m_pNode(_pNode), m_container(_container)
     {}
 
-    bool addValue(const NamedValue &_val) {
-        if (m_bound.find(&_val) != m_bound.end())
+    bool addValue(const NamedValuePtr &_val) {
+        if (m_bound.find(_val) != m_bound.end())
             return false;
-        m_container.insert(&_val);
+        m_container.insert(_val);
         return true;
     }
 
-    virtual bool visitVariableReference(VariableReference &_node) {
-        addValue(*_node.getTarget());
+    virtual bool visitVariableReference(const VariableReferencePtr &_node) {
+        addValue(_node->getTarget());
         return false;
     }
 
-    virtual bool visitNamedValue(NamedValue &_node) {
+    virtual bool visitNamedValue(const NamedValuePtr &_node) {
         addValue(_node);
         return false;
     }
 
-    virtual bool visitParam(Param &_node) {
+    virtual bool visitParam(const ParamPtr &_node) {
         addValue(_node);
         return false;
     }
 
-    virtual bool traverseArrayIteration(ArrayIteration &_expr) {
+    virtual bool traverseArrayIteration(const ArrayIterationPtr &_expr) {
         ValuesSet oldBound = m_bound;
 
-        m_bound.insert(_expr.getIterators().begin(), _expr.getIterators().end());
+        m_bound.insert(_expr->getIterators().begin(), _expr->getIterators().end());
         const bool bResult = Visitor::traverseArrayIteration(_expr);
         m_bound.swap(oldBound);
 
         return bResult;
     }
 
-    virtual bool traverseFormula(Formula &_node) {
+    virtual bool traverseFormula(const FormulaPtr &_node) {
         VISITOR_ENTER(Formula, _node);
 
         ValuesSet oldBound = m_bound;
 
-        m_bound.insert(_node.getBoundVariables().begin(), _node.getBoundVariables().end());
-        VISITOR_TRAVERSE(Expression, Subformula, _node.getSubformula(), _node, Formula, setSubformula);
+        m_bound.insert(_node->getBoundVariables().begin(), _node->getBoundVariables().end());
+        VISITOR_TRAVERSE(Expression, Subformula, _node->getSubformula(), _node, Formula, setSubformula);
         m_bound.swap(oldBound);
 
         VISITOR_EXIT();
@@ -145,7 +145,7 @@ public:
     }
 
     ValuesSet& run() {
-        traverseNode(*m_pNode);
+        traverseNode(m_pNode);
         return m_container;
     }
 
@@ -281,7 +281,7 @@ void getArgs(const StatementPtr& _pStatement, ValuesSet& _container) {
         }
             break;
         case Statement::CALL:
-            collectValues(&_pStatement->as<Call>()->getArgs(), _container);
+            collectValues(_pStatement->as<Call>()->getArgs().as<Node>(), _container);
             break;
     }
 }
@@ -291,21 +291,21 @@ void getParameters(const StatementPtr& _pStatement, ValuesSet& _container) {
     getResults(_pStatement, _container);
 }
 
-void getPredicateParams(const Predicate &_predicate, NamedValues& _params) {
-    for (size_t i = 0; i < _predicate.getInParams().size(); ++i)
-        _params.add(_predicate.getInParams().get(i));
-    for (size_t i = 0; i < _predicate.getOutParams().size(); ++i) {
-        const Branch& b = *_predicate.getOutParams().get(i);
+void getPredicateParams(const PredicatePtr &_predicate, NamedValues& _params) {
+    for (size_t i = 0; i < _predicate->getInParams().size(); ++i)
+        _params.add(_predicate->getInParams().get(i));
+    for (size_t i = 0; i < _predicate->getOutParams().size(); ++i) {
+        const Branch& b = *_predicate->getOutParams().get(i);
         for (size_t j = 0; j < b.size(); ++j)
             _params.add(b.get(j));
     }
 }
 
-void getPredicateParams(const PredicateType &_predicateType, NamedValues& _params) {
-    for (size_t i = 0; i < _predicateType.getInParams().size(); ++i)
-        _params.add(_predicateType.getInParams().get(i));
-    for (size_t i = 0; i < _predicateType.getOutParams().size(); ++i) {
-        const Branch& b = *_predicateType.getOutParams().get(i);
+void getPredicateParams(const PredicateTypePtr &_predicateType, NamedValues& _params) {
+    for (size_t i = 0; i < _predicateType->getInParams().size(); ++i)
+        _params.add(_predicateType->getInParams().get(i));
+    for (size_t i = 0; i < _predicateType->getOutParams().size(); ++i) {
+        const Branch& b = *_predicateType->getOutParams().get(i);
         for (size_t j = 0; j < b.size(); ++j)
             _params.add(b.get(j));
     }
@@ -456,10 +456,10 @@ FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const Express
     return pDecl;
 }
 
-FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const Predicate &_predicate, const Expression &_expr) {
+FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const PredicatePtr &_predicate, const ExpressionPtr &_expr) {
     NamedValues params;
     getPredicateParams(_predicate, params);
-    return declareFormula(_strName, &_expr, params);
+    return declareFormula(_strName, _expr, params);
 }
 
 std::list<ModulePtr> getModulePath(const std::list<Visitor::Loc>& _path) {

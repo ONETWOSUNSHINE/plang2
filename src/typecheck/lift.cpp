@@ -23,13 +23,13 @@ bool Lift::_run(int & _nResult) {
     for (tc::Formulas::iterator iCF = _context()->beginCompound();
             iCF != _context()->end();)
     {
-        tc::CompoundFormula &cf = *iCF->as<tc::CompoundFormula>();
+        auto cf = (*iCF)->as<tc::CompoundFormula>();
         bool bFormulaModified = false;
 
-        assert(cf.size() > 1);
+        assert(cf->size() > 1);
 
-        for (size_t cTestPart = 0; cTestPart < cf.size(); ++cTestPart) {
-            tc::Formulas &part = cf.getPart(cTestPart);
+        for (size_t cTestPart = 0; cTestPart < cf->size(); ++cTestPart) {
+            tc::Formulas &part = cf->getPart(cTestPart);
 
             for (tc::Formulas::iterator iTest = part.begin(); iTest != part.end();) {
                 bool bLift = true;
@@ -37,11 +37,11 @@ bool Lift::_run(int & _nResult) {
                 tc::FormulaPtr pTest = *iTest;
 
                 // Test whether pTest can be lifted.
-                for (size_t i = 0; bLift && i < cf.size(); ++i) {
+                for (size_t i = 0; bLift && i < cf->size(); ++i) {
                     if (i == cTestPart)
                         continue;
 
-                    tc::ContextStack::push(cf.getPartPtr(i));
+                    tc::ContextStack::push(cf->getPartPtr(i));
                     bLift &= _context()->implies(*pTest);
                     tc::ContextStack::pop();
                 }
@@ -52,18 +52,18 @@ bool Lift::_run(int & _nResult) {
                     bFormulaModified = true;
 
                     // Iterate over all parts and erase the lifted formula.
-                    for (size_t i = 0; i < cf.size(); ++i) {
+                    for (size_t i = 0; i < cf->size(); ++i) {
                         if (i == cTestPart)
                             part.erase(iTest);
                         else
-                            cf.getPart(i).erase(pTest);
+                            cf->getPart(i).erase(pTest);
 
-                        if (cf.getPart(i).size() == 0)
-                            cf = tc::CompoundFormula(); // Clear formula, no need for other parts anymore.
+                        if (cf->getPart(i).size() == 0)
+                            cf = std::make_shared<tc::CompoundFormula>(); // Clear formula, no need for other parts anymore.
                     }
                 }
 
-                if (cf.size() == 0)
+                if (cf->size() == 0)
                     break;
 
                 iTest = iNext;
@@ -71,8 +71,8 @@ bool Lift::_run(int & _nResult) {
         }
 
         if (bFormulaModified) {
-            if (cf.size() > 0)
-                formulas.push_back(&cf);
+            if (cf->size() > 0)
+                formulas.push_back(cf);
 
             _context()->erase(iCF++);
             bModified = true;
@@ -88,8 +88,8 @@ bool Lift::_run(int & _nResult) {
     return bModified;
 }
 
-Auto<Operation> Operation::lift() {
-    return new Lift();
+OperationPtr Operation::lift() {
+    return std::make_shared<Lift>();
 }
 
 }

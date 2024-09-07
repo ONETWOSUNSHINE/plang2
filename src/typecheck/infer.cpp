@@ -33,16 +33,16 @@ bool _validateRelation(const tc::RelationPtr &_pRelation, tc::Lattice &_lattice,
         return false;
 
     // Check occurrences of A <= B < A (or A < B < A).
-    if (_lattice.relations().find(new tc::Relation(_pRelation->getRhs(), _pRelation->getLhs(), true)) != _lattice.relations().end())
+    if (_lattice.relations().find(std::make_shared<tc::Relation>(_pRelation->getRhs(), _pRelation->getLhs(), true)) != _lattice.relations().end())
         return false;
 
     // Check occurrences of A <= B <= A (or A < B <= A).
-    if (_lattice.relations().find(new tc::Relation(_pRelation->getRhs(), _pRelation->getLhs(), false)) != _lattice.relations().end()) {
+    if (_lattice.relations().find(std::make_shared<tc::Relation>(_pRelation->getRhs(), _pRelation->getLhs(), false)) != _lattice.relations().end()) {
         if (_pRelation->isStrict())
             return false;
 
         if (tc::FormulaList *pSubsts = (tc::FormulaList *)_pParam)
-            pSubsts->push_back(new tc::Formula(tc::Formula::EQUALS, _pRelation->getLhs(), _pRelation->getRhs()));
+            pSubsts->push_back(std::make_shared<tc::Formula>(tc::Formula::EQUALS, _pRelation->getLhs(), _pRelation->getRhs()));
     }
 
     return true;
@@ -83,7 +83,7 @@ bool Infer::_run(int & _nResult) {
         if (!f.is(tc::Formula::SUBTYPE | tc::Formula::SUBTYPE_STRICT))
             continue;
 
-        tc::Relations::iterator j = relations.find(new tc::Relation(f));
+        const auto j = relations.find(std::make_shared<tc::Relation>(f));
 
         // Missing formula could have been replaced by Lattice::update() as a result of applying substs.
         if (j == relations.end() || !(*j)->bUsed) {
@@ -97,7 +97,7 @@ bool Infer::_run(int & _nResult) {
         tc::Relation &f = **i;
 
         if (f.bUsed)
-            bModified |= _context().add(new tc::Formula(f));
+            bModified |= _context().add(std::make_shared<tc::Formula>(f));
     }
 
     bModified |= _runCompound(_nResult);
@@ -139,8 +139,8 @@ bool Infer::_run(int & _nResult) {
     return bModified;
 }
 
-Auto<Operation> Operation::infer() {
-    return new Infer();
+OperationPtr Operation::infer() {
+    return std::make_shared<Infer>();
 }
 
 }

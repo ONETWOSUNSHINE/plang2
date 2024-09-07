@@ -37,11 +37,11 @@ public:
     NodeSetterImpl(const std::shared_ptr<_Node> &_pNode) : m_pNode(_pNode) {}
 
     virtual void set(const NodePtr &_pValue) {
-        (m_pNode->*_Method)(std::static_pointer_cast<_Member>(_pValue));
+        (m_pNode->_Method)(_pValue->as<_Member>());
     }
 
 protected:
-    const std::shared_ptr<_Node> &m_pNode;
+    const std::shared_ptr<_Node> m_pNode;
 };
 
 template<class _Node, class _Base>
@@ -50,7 +50,7 @@ public:
     ItemSetterImpl(Collection<_Node, _Base> &_pNodes, size_t _cIndex) : m_pNodes(_pNodes), m_cIndex(_cIndex) {}
 
     virtual void set(const NodePtr &_pValue) {
-        m_pNodes->set(m_cIndex, std::static_pointer_cast<_Node>(_pValue));
+        m_pNodes.set(m_cIndex, _pValue->as<_Node>());
     }
 
 protected:
@@ -122,7 +122,7 @@ public:
         struct Ctx {
             Visitor* pVisitor;
 
-        Ctx(Visitor *_pVisitor, NodePtr &_pNode, NodeType _type, NodeRole _role,
+        Ctx(Visitor *_pVisitor, const NodePtr &_pNode, NodeType _type, NodeRole _role,
                 RoleHandler _roleHandler = nullptr, RoleHandler _roleHandlerPost = nullptr,
                 NodeSetter *_pSetter = nullptr, NodeWalkUp _walkUp = nullptr)
             : pVisitor(_pVisitor)
@@ -202,7 +202,7 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
     do {                                                            \
         if (isStopped())                                            \
             return false;                                           \
-        auto nodePtr = std::static_pointer_cast<Node>(_PARAM);     \
+        auto nodePtr = (_PARAM)->as<ir::Node>();     \
         if (m_path.empty())                                         \
             m_path.push_back(Loc(nodePtr, ir::N_##_TYPE, ir::R_TopLevel));   \
         else                                                        \
@@ -236,12 +236,12 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
     do {                                                                            \
         if (isStopped())                                                            \
             return false;                                                           \
-        auto nodePtr = std::static_pointer_cast<Node>(_PARAM);                      \
+        const auto nodePtr = (_PARAM)->as<ir::Node>();                      \
         if (nodePtr) {                                                               \
             ir::NodeSetterImpl< ir::_PTYPE, ir::_TYPE, &ir::_PTYPE::_SETTER > setter(_PARENT);  \
             Ctx ctx(this, nodePtr, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,     \
                 &Visitor::handle##_ROLE##Post, &setter);                            \
-            auto typePtr = std::static_pointer_cast<_TYPE>(_PARAM);            \
+            const auto typePtr = (_PARAM)->as<ir::_TYPE>();            \
             if (!traverse##_TYPE(typePtr))                                        \
                 return false;                                                      \
         }                                                                           \
@@ -253,9 +253,9 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
             return false;                                                           \
         if (_PARAM) {                                                               \
             ir::NodeSetter setter;                                                  \
-            Ctx ctx(this, *(_PARAM), ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE, \
+            Ctx ctx(this, _PARAM, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE, \
                 &Visitor::handle##_ROLE##Post, &setter);                            \
-            if (!traverse##_TYPE(*(_PARAM)))                                        \
+            if (!traverse##_TYPE(_PARAM))                                        \
                 return false;                                                       \
         }                                                                           \
     } while (0)
@@ -263,13 +263,13 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
 #define VISITOR_TRAVERSE_INLINE(_TYPE, _ROLE, _PARAM, _PARENT, _PTYPE, _SETTER)                     \
         assert(_PARAM);                                                                             \
         ir::NodeSetterImpl< ir::_PTYPE, ir::_TYPE, &ir::_PTYPE::_SETTER > __setter##LINE(_PARENT);  \
-        Ctx __ctx##LINE(this, *(_PARAM), ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,     \
+        Ctx __ctx##LINE(this, _PARAM, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,     \
             &Visitor::handle##_ROLE##Post, &__setter##LINE)
 
 #define VISITOR_TRAVERSE_INLINE_NS(_TYPE, _ROLE, _PARAM)                                            \
         assert(_PARAM);                                                                             \
         ir::NodeSetter __setter##LINE;                                                              \
-        Ctx __ctx##LINE(this, *(_PARAM), ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,     \
+        Ctx __ctx##LINE(this, _PARAM, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,     \
             &Visitor::handle##_ROLE##Post, &__setter##LINE)
 
 #define VISITOR_TRAVERSE_COL(_TYPE, _ROLE, _PARAM)                                  \
@@ -277,7 +277,7 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
         if (isStopped())                                                            \
             return false;                                                           \
         if (!(_PARAM).empty()) {                                                    \
-            auto nodePtr = std::make_shared<Node>(_PARAM);                         \
+            auto nodePtr = std::make_shared<ir::Node>(_PARAM);                         \
             Ctx ctx(this, nodePtr, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,    \
                 &Visitor::handle##_ROLE##Post, nullptr);                               \
             if (!traverseCollection(_PARAM))                                        \
@@ -291,13 +291,13 @@ bool Visitor::traverseCollection(Collection<_Node, _Base> &_pNodes) {
             return false;                                                           \
         const size_t cIndex = (_INDEX);                                             \
         if ((_INDEX) < (_PARAM).size() && (_PARAM).get(cIndex)) {                   \
-            std::shared_ptr<_TYPE> pNode = (_PARAM).get(cIndex);                               \
-            Ctx ctx(this, _PARAM, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,    \
+            const auto pNode = (_PARAM).get(cIndex);                               \
+            Ctx ctx(this, pNode, ir::N_##_TYPE, ir::R_##_ROLE, &Visitor::handle##_ROLE,    \
                 &Visitor::handle##_ROLE##Post, nullptr);                               \
             getLoc().cPosInCollection = cIndex;                                     \
             getLoc().bPartOfCollection = true;                                      \
             getLoc().bLastInCollection = cIndex + 1 == (_PARAM).size();             \
-            if (!traverse##_TYPE(*pNode))                                           \
+            if (!traverse##_TYPE(pNode))                                           \
                 return false;                                                       \
         }                                                                           \
     } while (0)

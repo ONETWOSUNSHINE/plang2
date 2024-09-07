@@ -370,6 +370,8 @@ private:
     TypePtr m_pBaseType;
 };
 
+using OptionalTypePtr = std::shared_ptr<class OptionalType>;
+
 /// Optional type.
 /// Values of optional type are either of it's base type or \c nil.
 class OptionalType : public DerivedType {
@@ -386,6 +388,8 @@ public:
         return NEW_CLONE(this, _cloner, OptionalType(_cloner.get(getBaseType())));
     }
 };
+
+using SeqTypePtr = std::shared_ptr<class SeqType>;
 
 /// Sequence type.
 class SeqType : public DerivedType {

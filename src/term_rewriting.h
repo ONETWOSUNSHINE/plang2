@@ -9,7 +9,7 @@
 
 namespace tr {
 
-std::pair<ir::NodePtr, ir::NodePtr> extractFirstCall(const ir::Node& _node);
+std::pair<ir::NodePtr, ir::NodePtr> extractFirstCall(const ir::NodePtr& _node);
 
 // Modify statements and modules to verification.
 ir::StatementPtr modifyStatement(const ir::StatementPtr& _pStatement);

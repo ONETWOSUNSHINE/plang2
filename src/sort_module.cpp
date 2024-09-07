@@ -21,35 +21,35 @@ public:
     bool _traverseDeclaration(T & _decl) {
         for(auto i: m_path)
             if (i.pNode && i.pNode->getNodeKind() == Node::MODULE)
-                m_container[i.pNode].insert(&_decl);
+                m_container[i.pNode].insert(_decl);
         return true;
     }
 
-    virtual bool traverseModule(Module& _node) {
+    virtual bool traverseModule(const ModulePtr& _node) {
         return _traverseDeclaration(_node) &&
             Visitor::traverseModule(_node);
     }
 
-    virtual bool traverseVariableDeclaration(VariableDeclaration& _node) {
+    virtual bool traverseVariableDeclaration(const VariableDeclarationPtr& _node) {
         return _traverseDeclaration(_node);
     }
 
-    virtual bool traverseTypeDeclaration(TypeDeclaration& _node) {
+    virtual bool traverseTypeDeclaration(const TypeDeclarationPtr& _node) {
         return _traverseDeclaration(_node);
     }
 
-    virtual bool traversePredicate(Predicate& _node) {
+    virtual bool traversePredicate(const PredicatePtr& _node) {
         return _traverseDeclaration(_node);
     }
 
-    virtual bool traverseFormulaDeclaration(FormulaDeclaration& _node) {
+    virtual bool traverseFormulaDeclaration(const FormulaDeclarationPtr& _node) {
         return _traverseDeclaration(_node);
     }
 
     void run(const NodePtr& _pNode) {
         m_container.clear();
         if (_pNode)
-            traverseNode(*_pNode);
+            traverseNode(_pNode);
     }
 
 private:
@@ -69,16 +69,16 @@ public:
         for(auto& i: m_path) {
             if (i.pNode == nullptr)
                 continue;
-            if (i.pNode == _pNode.ptr())
+            if (i.pNode == _pNode)
                 break;
             if (i.pNode->getNodeKind() != Node::MODULE &&
                 i.pNode->getNodeKind() != Node::STATEMENT)
                 continue;
             if (i.pNode->getNodeKind() == Node::STATEMENT &&
-                ((Statement*)i.pNode)->getKind() != Statement::VARIABLE_DECLARATION &&
-                ((Statement*)i.pNode)->getKind() != Statement::TYPE_DECLARATION &&
-                ((Statement*)i.pNode)->getKind() != Statement::FORMULA_DECLARATION &&
-                ((Statement*)i.pNode)->getKind() != Statement::PREDICATE_DECLARATION)
+                i.pNode->as<Statement>()->getKind() != Statement::VARIABLE_DECLARATION &&
+                i.pNode->as<Statement>()->getKind() != Statement::TYPE_DECLARATION &&
+                i.pNode->as<Statement>()->getKind() != Statement::FORMULA_DECLARATION &&
+                i.pNode->as<Statement>()->getKind() != Statement::PREDICATE_DECLARATION)
                 continue;
 
             const auto iVertex = m_decls.find(i.pNode);
@@ -102,7 +102,7 @@ public:
             return true;
         if (!_var.getTarget())
             return true;
-        return visitDependence(_var.getTarget().as<Variable>()->getDeclaration());
+        return visitDependence(_var.getTarget()->as<Variable>()->getDeclaration());
     }
 
     virtual bool visitFormulaCall(FormulaCall& _call) {
@@ -113,20 +113,20 @@ public:
         if (_call.getPredicate() &&
             _call.getPredicate()->getKind() != Expression::PREDICATE)
             return true;
-        return visitDependence(_call.getPredicate().as<PredicateReference>()->getTarget());
+        return visitDependence(_call.getPredicate()->as<PredicateReference>()->getTarget());
     }
 
     virtual bool visitFunctionCall(FunctionCall& _call) {
         if (_call.getPredicate() &&
             _call.getPredicate()->getKind() != Expression::PREDICATE)
             return true;
-        return visitDependence(_call.getPredicate().as<PredicateReference>()->getTarget());
+        return visitDependence(_call.getPredicate()->as<PredicateReference>()->getTarget());
     }
 
     void run(const NodePtr& _pNode) {
         m_container.clear();
         if (_pNode)
-            traverseNode(*_pNode);
+            traverseNode(_pNode);
     }
 
 private:
@@ -153,28 +153,28 @@ static bool _depends(const NodePtr& pLow, const NodePtr& pHigh, const Graph& _de
     return false;
 }
 
-static void _buildDeclarations(const Module & _module, Nodes& _declarations) {
-    _declarations.assign(_module.getPredicates());
-    _declarations.append(_module.getFormulas());
-    _declarations.append(_module.getTypes());
-    _declarations.append(_module.getVariables());
-    _declarations.append(_module.getModules());
+static void _buildDeclarations(const ModulePtr & _module, Nodes& _declarations) {
+    _declarations.assign(_module->getPredicates());
+    _declarations.append(_module->getFormulas());
+    _declarations.append(_module->getTypes());
+    _declarations.append(_module->getVariables());
+    _declarations.append(_module->getModules());
 }
 
-static void _buildDependencies(const Module & _module, Graph& _dependencies) {
+static void _buildDependencies(const ModulePtr & _module, Graph& _dependencies) {
     Nodes declarations;
     _buildDeclarations(_module, declarations);
 
     Graph decls, deps;
-    CollectDeclarations(decls).run(&_module);
-    CollectDependencies(decls, deps).run(&_module);
+    CollectDeclarations(decls).run(_module);
+    CollectDependencies(decls, deps).run(_module);
 
     for (auto i: declarations)
         _dependencies.insert({i, std::set<NodePtr>()});
 
-    if (!_module.getPredicates().empty())
-        for (size_t i = 1; i < _module.getPredicates().size(); ++i)
-            _dependencies[_module.getPredicates().get(i)].insert(_module.getPredicates().get(i - 1));
+    if (!_module->getPredicates().empty())
+        for (size_t i = 1; i < _module->getPredicates().size(); ++i)
+            _dependencies[_module->getPredicates().get(i)].insert(_module->getPredicates().get(i - 1));
 
     for (auto i: declarations) {
         for (auto j: declarations) {
@@ -207,7 +207,7 @@ private:
     std::set<NodePtr> m_traversedNodes;
 };
 
-void sortModule(const Module & _module, Nodes & _sorted) {
+void sortModule(const ModulePtr & _module, Nodes & _sorted) {
     Graph dependencies;
     _buildDependencies(_module, dependencies);
 

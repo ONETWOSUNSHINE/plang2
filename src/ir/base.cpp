@@ -130,7 +130,7 @@ bool NamedValue::equals(const Node& _other) const {
         && _equals(getType(), other.getType());
 }
 
-void Param::updateUsed(NodePtr &_pRoot) {
+void Param::updateUsed(const NodePtr &_pRoot) {
     struct Enumerator : public Visitor {
         std::set<NamedValuePtr> params;
 
@@ -144,7 +144,7 @@ void Param::updateUsed(NodePtr &_pRoot) {
     struct Updater : public Visitor {
         Enumerator enumerator;
 
-        void run(NodePtr &_pRoot) {
+        void run(const NodePtr &_pRoot) {
             enumerator.traverseNode(_pRoot);
             traverseNode(_pRoot);
         }

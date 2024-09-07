@@ -68,7 +68,7 @@ ir::FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ir:
 
 // Make module an ordered.
 std::list<ir::ModulePtr> getModulePath(const std::list<ir::Visitor::Loc>& _path);
-void sortModule(const ir::Module & _module, ir::Nodes & _sorted);
+void sortModule(const ir::ModulePtr & _module, ir::Nodes & _sorted);
 
 
 } // namespace na

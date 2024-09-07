@@ -67,16 +67,16 @@ bool StructType::less(const Type &_other) const {
 
     const StructType &other = (const StructType &)_other;
 
-    if (tc::TupleType(&getNamesOrd()) < tc::TupleType(&other.getNamesOrd()))
+    if (tc::TupleType(getNamesOrd()) < tc::TupleType(other.getNamesOrd()))
         return true;
 
-    if (tc::TupleType(&other.getNamesOrd()) < tc::TupleType(&getNamesOrd()))
+    if (tc::TupleType(other.getNamesOrd()) < tc::TupleType(getNamesOrd()))
         return false;
 
-    if (tc::TupleType(&getTypesOrd()) < tc::TupleType(&other.getTypesOrd()))
+    if (tc::TupleType(getTypesOrd()) < tc::TupleType(other.getTypesOrd()))
         return true;
 
-    if (tc::TupleType(&other.getTypesOrd()) < tc::TupleType(&getTypesOrd()))
+    if (tc::TupleType(other.getTypesOrd()) < tc::TupleType(getTypesOrd()))
         return false;
 
     if (getNamesSet().size() != other.getNamesSet().size())

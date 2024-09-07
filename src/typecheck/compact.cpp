@@ -42,7 +42,7 @@ bool Compact::_run(int & _nResult) {
                 (*pSub->getLhs() == *pEq->getRhs() && *pSub->getRhs() == *pEq->getLhs())))
         {
             _context()->clear();
-            _context()->insert(new tc::Formula(tc::Formula::SUBTYPE, pSub->getLhs(), pSub->getRhs()));
+            _context()->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, pSub->getLhs(), pSub->getRhs()));
             other.pFlags->filterTo(*_context()->pFlags, *pSub);
             bModified = true;
             cf.removePart(k);
@@ -53,8 +53,8 @@ bool Compact::_run(int & _nResult) {
     return bModified;
 }
 
-Auto<Operation> Operation::compact() {
-    return new Compact();
+OperationPtr Operation::compact() {
+    return std::make_shared<Compact>();
 }
 
 }

@@ -19,6 +19,8 @@ NODE(PredicateType, Type)
 NODE(ParameterizedType, Type)
 NODE(NamedReferenceType, Type)
 NODE(TypeType, Type)
+NODE(SeqType, Type)
+NODE(OptionalType, Type)
 
 // Named.
 NODE(NamedValue, Node)

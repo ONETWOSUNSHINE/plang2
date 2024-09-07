@@ -75,24 +75,24 @@ ConditionPtr Inference::singledValue(const StatementPtr& _pStmt) {
     getResults(_pStmt, results);
 
     Cloner cloner1, cloner2;
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     for (ValuesSet::iterator i = results.begin(); i != results.end(); ++i) {
         VariableReferencePtr
-            pVar1 = new VariableReference(cloner1.get(*i)),
-            pVar2 = new VariableReference(cloner2.get(*i));
-        pConj1->addExpression(new Binary(Binary::EQUALS, pVar1, pVar2));
+            pVar1 = std::make_shared<VariableReference(cloner1.get(*i)),
+            pVar2 = std::make_shared<VariableReference(cloner2.get(*i));
+        pConj1->addExpression(std::make_shared<Binary(Binary::EQUALS, pVar1, pVar2));
     }
 
     const StatementPtr&
         pStmt1 = cloner1.get(_pStmt),
         pStmt2 = cloner2.get(_pStmt);
 
-    ConjunctionPtr pConj2 = new Conjunction();
+    ConjunctionPtr pConj2 = std::make_shared<Conjunction();
     pConj2->assign(getPreConditionForStatement(_pStmt, NULL, &m_context));
-    pConj2->addConjunct(new LogicConjunct(pStmt1));
-    pConj2->addConjunct(new LogicConjunct(pStmt2));
+    pConj2->addConjunct(std::make_shared<LogicConjunct(pStmt1));
+    pConj2->addConjunct(std::make_shared<LogicConjunct(pStmt2));
 
-    return new Sequent(pConj2, pConj1);
+    return std::make_shared<Sequent(pConj2, pConj1);
 }
 
 static bool getSubStatementSpecification(const PredicatePtr& _pPred, const std::pair<StatementPtr, StatementPtr>& _statements,
@@ -120,24 +120,24 @@ bool Inference::ruleRP(const ParallelBlock& _block, const ConjunctionPtr& _pPre,
         return false;
 
     // Corr(A, B, P_B, Q_B)
-    m_context.addCondition(new Correctness(pB, spec[pB].first, spec[pB].second));
+    m_context.addCondition(std::make_shared<Correctness(pB, spec[pB].first, spec[pB].second));
 
     // Corr(A, C, P_C, Q_C)
-    m_context.addCondition(new Correctness(pC, spec[pC].first, spec[pC].second));
+    m_context.addCondition(std::make_shared<Correctness(pC, spec[pC].first, spec[pC].second));
 
-    ConjunctionPtr pConj = new Conjunction();
+    ConjunctionPtr pConj = std::make_shared<Conjunction();
     pConj->assign(spec[pB].first);
     pConj->append(spec[pC].first);
 
     // P |- P_B* & P_C*
-    m_context.addCondition(new Sequent(_pPre, pConj));
+    m_context.addCondition(std::make_shared<Sequent(_pPre, pConj));
 
-    pConj = new Conjunction();
+    pConj = std::make_shared<Conjunction();
     pConj->assign(spec[pB].second);
     pConj->append(spec[pC].second);
 
     // Q_B & Q_C |- Q
-    m_context.addCondition(new Sequent(pConj, _pPost));
+    m_context.addCondition(std::make_shared<Sequent(pConj, _pPost));
 
     m_context.m_cLastUsedRule = Context::RP;
     return true;
@@ -153,27 +153,27 @@ bool Inference::ruleRS(const Block& _block, const ConjunctionPtr& _pPre, const C
         return false;
 
     // Corr(A, B, P_B, Q_B)
-    m_context.addCondition(new Correctness(pB, spec[pB].first, spec[pB].second));
+    m_context.addCondition(std::make_shared<Correctness(pB, spec[pB].first, spec[pB].second));
 
     // Corr(A, C, P_C, Q_C)
-    m_context.addCondition(new Correctness(pC, spec[pC].first, spec[pC].second));
+    m_context.addCondition(std::make_shared<Correctness(pC, spec[pC].first, spec[pC].second));
 
     // P |- P_B*
-    m_context.addCondition(new Sequent(_pPre, spec[pB].first));
+    m_context.addCondition(std::make_shared<Sequent(_pPre, spec[pB].first));
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pPre);
     pConj1->append(spec[pB].second);
 
     // P & Q_B |- P_C*
-    m_context.addCondition(new Sequent(pConj1, spec[pC].first));
+    m_context.addCondition(std::make_shared<Sequent(pConj1, spec[pC].first));
 
-    ConjunctionPtr pConj2 =  new Conjunction();
+    ConjunctionPtr pConj2 =  std::make_shared<Conjunction();
     pConj2->assign(pConj1);
     pConj2->append(spec[pC].second);;
 
     // P & Q_B & Q_C |- Q
-    m_context.addCondition(new Sequent(pConj2, _pPost));
+    m_context.addCondition(std::make_shared<Sequent(pConj2, _pPost));
 
     m_context.m_cLastUsedRule = Context::RS;
     return true;
@@ -192,45 +192,45 @@ bool Inference::ruleRC(const If& _if, const ConjunctionPtr& _pPre, const Conjunc
         return false;
 
     // Corr(A, B, P_B, Q_B)
-    m_context.addCondition(new Correctness(pB, spec[pB].first, spec[pB].second));
+    m_context.addCondition(std::make_shared<Correctness(pB, spec[pB].first, spec[pB].second));
 
     // Corr(A, C, P_C, Q_C)
-    m_context.addCondition(new Correctness(pC, spec[pC].first, spec[pC].second));
+    m_context.addCondition(std::make_shared<Correctness(pC, spec[pC].first, spec[pC].second));
 
     ConjunctionPtr
         pArg = Conjunction::getConjunction(_if.getArg()),
-        pNotArg = new Conjunction();
+        pNotArg = std::make_shared<Conjunction();
 
     pNotArg->assign(pArg);
     pNotArg->negate();
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pPre);
     pConj1->append(pArg);
 
     // P & E |- P_B*
-    m_context.addCondition(new Sequent(pConj1, spec[pB].first));
+    m_context.addCondition(std::make_shared<Sequent(pConj1, spec[pB].first));
 
-    ConjunctionPtr pConj2 = new Conjunction();
+    ConjunctionPtr pConj2 = std::make_shared<Conjunction();
     pConj2->assign(_pPre);
     pConj2->append(pNotArg);
 
     // P & !E |- P_C*
-    m_context.addCondition(new Sequent(pConj2, spec[pC].first));
+    m_context.addCondition(std::make_shared<Sequent(pConj2, spec[pC].first));
 
-    ConjunctionPtr pConj3 = new Conjunction();
+    ConjunctionPtr pConj3 = std::make_shared<Conjunction();
     pConj3->assign(pConj1);
     pConj3->append(spec[pB].second);
 
     // P & E & Q_B |- Q
-    m_context.addCondition(new Sequent(pConj3, _pPost));
+    m_context.addCondition(std::make_shared<Sequent(pConj3, _pPost));
 
-    ConjunctionPtr pConj4 = new Conjunction();
+    ConjunctionPtr pConj4 = std::make_shared<Conjunction();
     pConj4->assign(pConj2);
     pConj4->append(spec[pC].second);
 
     // P & !E & Q_C |- Q
-    m_context.addCondition(new Sequent(pConj4, _pPost));
+    m_context.addCondition(std::make_shared<Sequent(pConj4, _pPost));
 
     m_context.m_cLastUsedRule = Context::RC;
     return true;
@@ -238,14 +238,14 @@ bool Inference::ruleRC(const If& _if, const ConjunctionPtr& _pPre, const Conjunc
 
 bool Inference::ruleRB(const Call& _call, const ConjunctionPtr& _pPre, const ConjunctionPtr& _pPost) {
     // P |- P_B & P_C*
-    m_context.addCondition(new Sequent(_pPre, getPreConditionForStatement(&_call, m_context.m_pPredicate, &m_context)));
+    m_context.addCondition(std::make_shared<Sequent(_pPre, getPreConditionForStatement(&_call, m_context.m_pPredicate, &m_context)));
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pPre);
     pConj1->append(getPostConditionForStatement(&_call, &m_context));
 
     // P & Q_C |- Q
-    m_context.addCondition(new Sequent(pConj1, _pPost));
+    m_context.addCondition(std::make_shared<Sequent(pConj1, _pPost));
 
     StatementPtr pB = extractCallArguments(&_call);
 
@@ -262,17 +262,17 @@ bool Inference::ruleQP(const ParallelBlock& _block, const ConjunctionPtr& _pPre,
     getResults(_block.get(1), valuesC);
 
     ConjunctionPtr
-        pQB = new Conjunction(),
-        pQC = new Conjunction();
+        pQB = std::make_shared<Conjunction(),
+        pQC = std::make_shared<Conjunction();
 
     if (!_pPost->split(valuesB, *pQB, valuesC, *pQC))
         return false;
 
     // Corr(A, B, P, Q_B);
-    m_context.addCondition(new Correctness(_block.get(0), _pPre, pQB));
+    m_context.addCondition(std::make_shared<Correctness(_block.get(0), _pPre, pQB));
 
     // Corr(A, B, P, Q_B);
-    m_context.addCondition(new Correctness(_block.get(1), _pPre, pQC));
+    m_context.addCondition(std::make_shared<Correctness(_block.get(1), _pPre, pQC));
 
     m_context.m_cLastUsedRule = Context::QP;
     return true;
@@ -287,17 +287,17 @@ bool Inference::ruleQSB(const Block& _block, const ConjunctionPtr& _pPre, const 
         return false;
 
     // P |- P_B
-    m_context.addCondition(new Sequent(_pPre, pPreB));
+    m_context.addCondition(std::make_shared<Sequent(_pPre, pPreB));
 
     // Corr(A, B, P_B, Q_B);
-    m_context.addCondition(new Correctness(_block.get(0), pPreB, pPostB));
+    m_context.addCondition(std::make_shared<Correctness(_block.get(0), pPreB, pPostB));
 
-    ConjunctionPtr pConj = new Conjunction();
+    ConjunctionPtr pConj = std::make_shared<Conjunction();
     pConj->assign(_pPre);
     pConj->append(pPostB);
 
     // Corr(A, C, P & Q_B, Q)
-    m_context.addCondition(new Correctness(_block.get(1), pConj, _pPost));
+    m_context.addCondition(std::make_shared<Correctness(_block.get(1), pConj, _pPost));
 
     m_context.m_cLastUsedRule = Context::QSB;
     return true;
@@ -307,17 +307,17 @@ bool Inference::ruleQS(const Block& _block, const ConjunctionPtr& _pPre, const C
     ValuesSet results;
     getResults(_block.get(0), results);
 
-    ConjunctPtr pLogic = new LogicConjunct(_block.get(0));
+    ConjunctPtr pLogic = std::make_shared<LogicConjunct(_block.get(0));
 
     // P(x) |- exists y. L(B(x: y))
-    m_context.addCondition(new Sequent(_pPre, new Conjunction(new QuantifierConjunct(results, pLogic))));
+    m_context.addCondition(std::make_shared<Sequent(_pPre, std::make_shared<Conjunction(std::make_shared<QuantifierConjunct(results, pLogic))));
 
-    ConjunctionPtr pConj = new Conjunction;
+    ConjunctionPtr pConj = std::make_shared<Conjunction;
     pConj->assign(_pPre);
     pConj->addConjunct(pLogic);
 
     // Corr(A, C, P(x) & L(B(x, y)), Q)
-    m_context.addCondition(new Correctness(_block.get(1), pConj, _pPost));
+    m_context.addCondition(std::make_shared<Correctness(_block.get(1), pConj, _pPost));
 
     m_context.m_cLastUsedRule = Context::QS;
     return true;
@@ -329,24 +329,24 @@ bool Inference::ruleQC(const If& _if, const ConjunctionPtr& _pPre, const Conjunc
 
     ConjunctionPtr
         pArg = Conjunction::getConjunction(_if.getArg()),
-        pNotArg = new Conjunction();
+        pNotArg = std::make_shared<Conjunction();
 
     pNotArg->assign(pArg);
     pNotArg->negate();
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pPre);
     pConj1->append(pArg);
 
     // Corr(A, B, P & E, Q)
-    m_context.addCondition(new Correctness(_if.getBody(), pConj1, _pPost));
+    m_context.addCondition(std::make_shared<Correctness(_if.getBody(), pConj1, _pPost));
 
-    ConjunctionPtr pConj2 = new Conjunction();
+    ConjunctionPtr pConj2 = std::make_shared<Conjunction();
     pConj2->assign(_pPre);
     pConj2->append(pNotArg);
 
     // Corr(A, C, P & !E, Q)
-    m_context.addCondition(new Correctness(_if.getElse(), pConj2, _pPost));
+    m_context.addCondition(std::make_shared<Correctness(_if.getElse(), pConj2, _pPost));
 
     m_context.m_cLastUsedRule = Context::QC;
     return true;
@@ -354,10 +354,10 @@ bool Inference::ruleQC(const If& _if, const ConjunctionPtr& _pPre, const Conjunc
 
 bool Inference::ruleFP(const ParallelBlock& _block, const ConjunctionPtr& _pLeft) {
     // R |- L(B)
-    m_context.addCondition(new Sequent(_pLeft, new Conjunction(new LogicConjunct(_block.get(0)))));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, std::make_shared<Conjunction(std::make_shared<LogicConjunct(_block.get(0)))));
 
     // R |- L(C)
-    m_context.addCondition(new Sequent(_pLeft, new Conjunction(new LogicConjunct(_block.get(1)))));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, std::make_shared<Conjunction(std::make_shared<LogicConjunct(_block.get(1)))));
 
     m_context.m_cLastUsedRule = Context::FP;
     return true;
@@ -368,15 +368,15 @@ bool Inference::ruleFS(const Block& _block, const ConjunctionPtr& _pLeft) {
     getResults(_block.get(0), results);
 
     // R |- exists z. L(B)
-    m_context.addCondition(new Sequent(_pLeft, new Conjunction(new QuantifierConjunct(results,
-        new LogicConjunct(_block.get(0))))));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, std::make_shared<Conjunction(std::make_shared<QuantifierConjunct(results,
+        std::make_shared<LogicConjunct(_block.get(0))))));
 
-    ConjunctionPtr pConj = new Conjunction();
+    ConjunctionPtr pConj = std::make_shared<Conjunction();
     pConj->assign(_pLeft);
-    pConj->addConjunct(new LogicConjunct(_block.get(0)));
+    pConj->addConjunct(std::make_shared<LogicConjunct(_block.get(0)));
 
     // R & L(B) |- L(C)
-    m_context.addCondition(new Sequent(pConj, new Conjunction(new LogicConjunct(_block.get(1)))));
+    m_context.addCondition(std::make_shared<Sequent(pConj, std::make_shared<Conjunction(std::make_shared<LogicConjunct(_block.get(1)))));
 
     m_context.m_cLastUsedRule = Context::FS;
     return true;
@@ -388,24 +388,24 @@ bool Inference::ruleFC(const If& _if, const ConjunctionPtr& _pLeft) {
 
     ConjunctionPtr
         pArg = Conjunction::getConjunction(_if.getArg()),
-        pNotArg = new Conjunction();
+        pNotArg = std::make_shared<Conjunction();
 
     pNotArg->assign(pArg);
     pNotArg->negate();
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pLeft);
     pConj1->append(pArg);
 
     // R & E |- L(B)
-    m_context.addCondition(new Sequent(pConj1, new Conjunction(new LogicConjunct(_if.getBody()))));
+    m_context.addCondition(std::make_shared<Sequent(pConj1, std::make_shared<Conjunction(std::make_shared<LogicConjunct(_if.getBody()))));
 
-    ConjunctionPtr pConj2 = new Conjunction();
+    ConjunctionPtr pConj2 = std::make_shared<Conjunction();
     pConj2->assign(_pLeft);
     pConj2->append(pNotArg);
 
     // R & !E |- L(C)
-    m_context.addCondition(new Sequent(pConj2, new Conjunction(new LogicConjunct(_if.getElse()))));
+    m_context.addCondition(std::make_shared<Sequent(pConj2, std::make_shared<Conjunction(std::make_shared<LogicConjunct(_if.getElse()))));
 
     m_context.m_cLastUsedRule = Context::FC;
     return true;
@@ -425,7 +425,7 @@ static void splitBoundedValues(std::pair<ValuesSet, ValuesSet>& _container, cons
 }
 
 static inline ConjunctionPtr getQuantifiedConjunction(const ValuesSet& _bounded, const StatementPtr& _pStmt) {
-    return new Conjunction(new QuantifierConjunct(_bounded, new LogicConjunct(_pStmt)));
+    return std::make_shared<Conjunction(std::make_shared<QuantifierConjunct(_bounded, std::make_shared<LogicConjunct(_pStmt)));
 }
 
 bool Inference::ruleEP(const ParallelBlock& _block, const ValuesSet& _bounded, const ConjunctionPtr& _pLeft) {
@@ -433,10 +433,10 @@ bool Inference::ruleEP(const ParallelBlock& _block, const ValuesSet& _bounded, c
     splitBoundedValues(newBounded, _bounded, _block.get(0), _block.get(1));
 
     // R |- exists y. L(B)
-    m_context.addCondition(new Sequent(_pLeft, getQuantifiedConjunction(newBounded.first, _block.get(0))));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, getQuantifiedConjunction(newBounded.first, _block.get(0))));
 
     // R |- exists z. L(C)
-    m_context.addCondition(new Sequent(_pLeft, getQuantifiedConjunction(newBounded.second, _block.get(1))));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, getQuantifiedConjunction(newBounded.second, _block.get(1))));
 
     m_context.m_cLastUsedRule = Context::EP;
     return true;
@@ -446,17 +446,17 @@ bool Inference::ruleES(const Block& _block, const ValuesSet& _bounded, const Con
     std::pair<ValuesSet, ValuesSet> newBounded;
     splitBoundedValues(newBounded, _bounded, _block.get(0), _block.get(1));
 
-    LogicConjunctPtr pLogic = new LogicConjunct(_block.get(0));
+    LogicConjunctPtr pLogic = std::make_shared<LogicConjunct(_block.get(0));
 
     // R |- exists y. L(B)
-    m_context.addCondition(new Sequent(_pLeft, new Conjunction(new QuantifierConjunct(newBounded.first, pLogic))));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, std::make_shared<Conjunction(std::make_shared<QuantifierConjunct(newBounded.first, pLogic))));
 
-    ConjunctionPtr pConj = new Conjunction();
+    ConjunctionPtr pConj = std::make_shared<Conjunction();
     pConj->assign(_pLeft);
     pConj->addConjunct(pLogic);
 
     // R & L(B) |- exists z. L(C)
-    m_context.addCondition(new Sequent(pConj, getQuantifiedConjunction(newBounded.second, _block.get(1))));
+    m_context.addCondition(std::make_shared<Sequent(pConj, getQuantifiedConjunction(newBounded.second, _block.get(1))));
 
     m_context.m_cLastUsedRule = Context::ES;
     return true;
@@ -471,24 +471,24 @@ bool Inference::ruleEC(const If& _if, const ValuesSet& _bounded, const Conjuncti
 
     ConjunctionPtr
         pArg = Conjunction::getConjunction(_if.getArg()),
-        pNotArg = new Conjunction();
+        pNotArg = std::make_shared<Conjunction();
 
     pNotArg->assign(pArg);
     pNotArg->negate();
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pLeft);
     pConj1->append(pArg);
 
     // R & E |- exists y. L(B)
-    m_context.addCondition(new Sequent(pConj1, getQuantifiedConjunction(newBounded.first, _if.getBody())));
+    m_context.addCondition(std::make_shared<Sequent(pConj1, getQuantifiedConjunction(newBounded.first, _if.getBody())));
 
-    ConjunctionPtr pConj2 = new Conjunction();
+    ConjunctionPtr pConj2 = std::make_shared<Conjunction();
     pConj2->assign(_pLeft);
     pConj2->append(pNotArg);
 
     // R & !E |- exists y. L(C)
-    m_context.addCondition(new Sequent(pConj2, getQuantifiedConjunction(newBounded.second, _if.getElse())));
+    m_context.addCondition(std::make_shared<Sequent(pConj2, getQuantifiedConjunction(newBounded.second, _if.getElse())));
 
     m_context.m_cLastUsedRule = Context::EC;
     return true;
@@ -496,7 +496,7 @@ bool Inference::ruleEC(const If& _if, const ValuesSet& _bounded, const Conjuncti
 
 bool Inference::ruleEB(const Call& _call, const ValuesSet& _bounded, const ConjunctionPtr& _pLeft) {
     // R |- P
-    m_context.addCondition(new Sequent(_pLeft, getPreConditionForStatement(&_call, NULL, &m_context)));
+    m_context.addCondition(std::make_shared<Sequent(_pLeft, getPreConditionForStatement(&_call, NULL, &m_context)));
 
     m_context.m_cLastUsedRule = Context::EB;
     return true;
@@ -504,16 +504,16 @@ bool Inference::ruleEB(const Call& _call, const ValuesSet& _bounded, const Conju
 
 bool Inference::ruleFLSP(const Block& _block, const ConjunctionPtr& _pTail, const ConjunctionPtr& _pRight) {
     ConjunctPtr
-        pB = new LogicConjunct(_block.get(0)),
-        pC = new LogicConjunct(_block.get(1));
+        pB = std::make_shared<LogicConjunct(_block.get(0)),
+        pC = std::make_shared<LogicConjunct(_block.get(1));
 
-    ConjunctionPtr pConj = new Conjunction();
+    ConjunctionPtr pConj = std::make_shared<Conjunction();
     pConj->assign(_pTail);
     pConj->addConjunct(pB);
     pConj->addConjunct(pC);
 
     // R & L(B) & L(C) |- H
-    m_context.addCondition(new Sequent(pConj, _pRight));
+    m_context.addCondition(std::make_shared<Sequent(pConj, _pRight));
 
     m_context.m_cLastUsedRule = (_block.getKind() == Statement::BLOCK ? Context::FLS : Context::FLP);
     return true;
@@ -525,26 +525,26 @@ bool Inference::ruleFLC(const If& _if, const ConjunctionPtr& _pTail, const Conju
 
     ConjunctionPtr
         pArg = Conjunction::getConjunction(_if.getArg()),
-        pNotArg = new Conjunction();
+        pNotArg = std::make_shared<Conjunction();
 
     pNotArg->assign(pArg);
     pNotArg->negate();
 
-    ConjunctionPtr pConj1 = new Conjunction();
+    ConjunctionPtr pConj1 = std::make_shared<Conjunction();
     pConj1->assign(_pTail);
     pConj1->append(pArg);
-    pConj1->addConjunct(new LogicConjunct(_if.getBody()));
+    pConj1->addConjunct(std::make_shared<LogicConjunct(_if.getBody()));
 
     // R & E & L(B) |- H
-    m_context.addCondition(new Sequent(pConj1, _pRight));
+    m_context.addCondition(std::make_shared<Sequent(pConj1, _pRight));
 
-    ConjunctionPtr pConj2 = new Conjunction();
+    ConjunctionPtr pConj2 = std::make_shared<Conjunction();
     pConj2->assign(_pTail);
     pConj2->append(pNotArg);
-    pConj2->addConjunct(new LogicConjunct(_if.getElse()));
+    pConj2->addConjunct(std::make_shared<LogicConjunct(_if.getElse()));
 
     // R & !E & L(C) |- H
-    m_context.addCondition(new Sequent(pConj2, _pRight));
+    m_context.addCondition(std::make_shared<Sequent(pConj2, _pRight));
 
     m_context.m_cLastUsedRule = Context::FLC;
     return true;
@@ -556,14 +556,14 @@ bool Inference::ruleFLB(const Call& _call, const ConjunctionPtr& _pTail, const C
         pPost = getPostConditionForStatement(&_call, &m_context);
 
     // R |- P_B
-    m_context.addCondition(new Sequent(_pTail, pPre));
+    m_context.addCondition(std::make_shared<Sequent(_pTail, pPre));
 
-    ConjunctionPtr pConj = new Conjunction();
+    ConjunctionPtr pConj = std::make_shared<Conjunction();
     pConj->assign(_pTail);
     pConj->append(pPost);
 
     // R & Q_B |- H
-    m_context.addCondition(new Sequent(pConj, _pRight));
+    m_context.addCondition(std::make_shared<Sequent(pConj, _pRight));
 
     m_context.m_cLastUsedRule = Context::FLB;
 
@@ -597,18 +597,18 @@ bool Inference::split(const Sequent& _sequent) {
         || _sequent.right()->size() <= 1)
         return false;
 
-    ConjunctionPtr pTail = new Conjunction();
+    ConjunctionPtr pTail = std::make_shared<Conjunction();
 
     for (auto i: _sequent.right()->getConjuncts())
         if (i->hasLogic())
-            m_context.addCondition(new Sequent(_sequent.left(), new Conjunction(i)));
+            m_context.addCondition(std::make_shared<Sequent(_sequent.left(), std::make_shared<Conjunction(i)));
         else
             pTail->addConjunct(i);
 
     // A |- B & L(C) =>
     //    A |- B
     //    A |- L(C)
-    m_context.addCondition(new Sequent(_sequent.left(), pTail));
+    m_context.addCondition(std::make_shared<Sequent(_sequent.left(), pTail));
 
     m_context.m_cLastUsedRule = Context::SPLIT;
     return true;
@@ -739,8 +739,8 @@ void verify(vf::Context& _context) {
 
 class PredicateTraverser : public Visitor {
 public:
-    PredicateTraverser() : m_pTheories(new Module()) {}
-    virtual bool visitPredicate(Predicate& _pred);
+    PredicateTraverser() : m_pTheories(std::make_shared<Module>()) {}
+    virtual bool visitPredicate(const PredicatePtr& _pred);
     void declareLemmas(const Context& _context, const ModulePtr& _pTheory);
     ModulePtr getTheories();
 
@@ -750,35 +750,35 @@ private:
     Context m_context;
 };
 
-bool PredicateTraverser::visitPredicate(Predicate& _pred) {
-    StatementPtr pNewBody = modifyStatement(_pred.getBlock());
+bool PredicateTraverser::visitPredicate(const PredicatePtr& _pred) {
+    StatementPtr pNewBody = modifyStatement(_pred->getBlock());
 
-    const ModulePtr pTheory = new Module(_pred.getName());
+    const ModulePtr pTheory = std::make_shared<Module>(_pred->getName());
     m_pTheories->getModules().add(pTheory);
 
     if (verifyVerbose()) {
-        std::wcout << L"Predicate " << _pred.getName() << L".\n\n";
+        std::wcout << L"Predicate " << _pred->getName() << L".\n\n";
         std::wcout << L"Original statement:\n\n";
-        pp::prettyPrintSyntax(*_pred.getBlock(), std::wcout);
+        pp::prettyPrintSyntax(_pred->getBlock(), std::wcout);
         std::wcout << L"\n\nSimplified to:\n\n";
-        pp::prettyPrintSyntax(*pNewBody, std::wcout);
+        pp::prettyPrintSyntax(pNewBody, std::wcout);
         std::wcout << L"\n\n";
     }
 
     m_context.clear();
-    m_context.m_pPredicate = &_pred;
-    m_context.m_conditions.push_back(std::make_pair(new Correctness(pNewBody,
-        Conjunction::getConjunction(makeCall(m_context.getPrecondition(_pred), _pred)),
-        Conjunction::getConjunction(makeCall(m_context.getPostcondition(_pred), _pred))), true));
+    m_context.m_pPredicate = _pred;
+    m_context.m_conditions.push_back(std::make_pair(std::make_shared<Correctness>(pNewBody,
+        Conjunction::getConjunction(makeCall(m_context.getPrecondition(*_pred.get()), _pred)),//TODO:dyp: fix
+        Conjunction::getConjunction(makeCall(m_context.getPostcondition(*_pred.get()), _pred))), true));//TODO:dyp: fix
 
     verify(m_context);
 
     declareLemmas(m_context, pTheory);
 
     if (verifyFormulas()) {
-        std::wcout << L"Formulas for " << _pred.getName() << L":\n";
+        std::wcout << L"Formulas for " << _pred->getName() << L":\n";
         for (auto i: m_context.m_lemmas)
-            pp::prettyPrintSyntax(*i.first, std::wcout, nullptr, true);
+            pp::prettyPrintSyntax(i.first, std::wcout, nullptr, true);
     }
 
     return true;
@@ -801,8 +801,8 @@ void PredicateTraverser::declareLemmas(const Context& _context, const ModulePtr&
 
 ModulePtr PredicateTraverser::getTheories() {
     ModulePtr
-        pTheories = new Module(),
-        pFormulas = new Module(L"Formulas");
+        pTheories = std::make_shared<Module>(),
+        pFormulas = std::make_shared<Module>(L"Formulas");
 
     pFormulas->getFormulas().insert(pFormulas->getFormulas().begin(),
         m_declaredFormulas.begin(), m_declaredFormulas.end());
@@ -815,7 +815,7 @@ ModulePtr PredicateTraverser::getTheories() {
 
 ModulePtr verify(const ModulePtr &_pModule) {
     PredicateTraverser traverser;
-    traverser.traverseNode(*_pModule);
+    traverser.traverseNode(_pModule);
     return traverser.getTheories();
 }
 

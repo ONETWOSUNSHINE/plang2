@@ -10,8 +10,8 @@
 
 namespace tc {
 
-typedef Auto<class Relation> RelationPtr;
-typedef std::set<class RelationPtrPair> RelationPtrPairs;
+using RelationPtr = std::shared_ptr<class Relation>;
+using RelationPtrPairs = std::set<class RelationPtrPair>;
 
 class Relation : public Formula {
 public:
@@ -154,7 +154,7 @@ public:
     void dump();
 
     typedef std::set<ir::TypePtr> Types;
-    typedef std::function<bool(const Auto<ir::Type>&, const Relations&, const Relations&)> Handler;
+    typedef std::function<bool(const ir::TypePtr&, const Relations&, const Relations&)> Handler;
 
     bool traverse(const Handler& _handler, bool _bOnlyFresh, const Types& _ignored = Types());
 

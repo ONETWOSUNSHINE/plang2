@@ -43,8 +43,8 @@ bool Prune::_run(int & _nResult) {
     return false;
 }
 
-Auto<Operation> Operation::prune() {
-    return new Prune();
+OperationPtr Operation::prune() {
+    return std::make_shared<Prune>();
 }
 
 }
