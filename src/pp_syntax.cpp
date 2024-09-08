@@ -305,22 +305,22 @@ bool PrettyPrinterSyntax::_traverseStructType(const StructTypePtr &_type) {
     VISITOR_ENTER(StructType, _type);
 
     // Order of fields: ordered names, unordered names, ordered types.
-    if (!_type->getNamesOrd().empty()) {
+    if (!_type->getNamesOrd()->empty()) {
         if (!m_os.isInline())
             m_os << L"\n";
-        VISITOR_TRAVERSE_COL(NamedValue, StructFieldDeclNameOrd, _type->getNamesOrd());
+        VISITOR_TRAVERSE_COL(NamedValue, StructFieldDeclNameOrd, *_type->getNamesOrd());
     }
 
-    if (m_bCompact && !(_type->getNamesSet().empty() && _type->getTypesOrd().empty()))
+    if (m_bCompact && !(_type->getNamesSet()->empty() && _type->getTypesOrd()->empty()))
         m_os << L";";
 
-    if (!_type->getNamesSet().empty()) {
+    if (!_type->getNamesSet()->empty()) {
         // Ensure sorting for debug purposes (don't reorder source collection though).
         std::map<std::wstring, NamedValuePtr> sortedFieldsMap;
         NamedValues sortedFields;
 
-        for (size_t i = 0; i < _type->getNamesSet().size(); ++i)
-            sortedFieldsMap[_type->getNamesSet().get(i)->getName()] = _type->getNamesSet().get(i);
+        for (size_t i = 0; i < _type->getNamesSet()->size(); ++i)
+            sortedFieldsMap[_type->getNamesSet()->get(i)->getName()] = _type->getNamesSet()->get(i);
 
         for (std::map<std::wstring, NamedValuePtr>::iterator i = sortedFieldsMap.begin();
                 i != sortedFieldsMap.end(); ++i)
@@ -328,22 +328,22 @@ bool PrettyPrinterSyntax::_traverseStructType(const StructTypePtr &_type) {
 
         if (m_bCompact)
             m_os << L"\n";
-        else if (!_type->getNamesSet().empty())
+        else if (!_type->getNamesSet()->empty())
             m_os << L",\n";
 
         VISITOR_TRAVERSE_COL(NamedValue, StructFieldDeclNameSet, sortedFields);
     }
 
-    if (m_bCompact && !_type->getTypesOrd().empty())
+    if (m_bCompact && !_type->getTypesOrd()->empty())
         m_os << L";";
 
-    if (!_type->getTypesOrd().empty()) {
+    if (!_type->getTypesOrd()->empty()) {
         if (m_bCompact)
             m_os << L"\n";
-        else if (!_type->getNamesOrd().empty() || !_type->getNamesSet().empty())
+        else if (!_type->getNamesOrd()->empty() || !_type->getNamesSet()->empty())
             m_os << L",\n";
 
-        VISITOR_TRAVERSE_COL(NamedValue, StructFieldDeclTypeOrd, _type->getTypesOrd());
+        VISITOR_TRAVERSE_COL(NamedValue, StructFieldDeclTypeOrd, *_type->getTypesOrd());
     }
 
     VISITOR_EXIT();

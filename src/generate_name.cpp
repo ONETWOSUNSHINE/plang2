@@ -11,39 +11,39 @@ class NamesCollector : public Visitor {
 public:
     NamesCollector(NameGenerator& _generator) : m_generator(_generator) {}
 
-    virtual bool visitNamedValue(const NamedValuePtr & _val) {
+    bool visitNamedValue(const NamedValuePtr & _val) override {
         m_generator.addNamedValue(_val);
         return true;
     }
 
-    virtual bool visitVariableReference(const VariableReferencePtr & _var) {
+    bool visitVariableReference(const VariableReferencePtr & _var) override {
         if (_var->getTarget())
             visitNamedValue(_var->getTarget());
         return true;
     }
 
-    virtual bool visitLabel(const LabelPtr & _label) {
+    bool visitLabel(const LabelPtr & _label) override {
         m_generator.addLabel(_label);
         return true;
     }
 
-    virtual bool visitTypeDeclaration(const TypeDeclarationPtr & _type) {
+    bool visitTypeDeclaration(const TypeDeclarationPtr & _type) override {
         m_generator.addType(_type);
         return true;
     }
 
-    virtual bool visitNamedReferenceType(const NamedReferenceTypePtr & _type) {
+    bool visitNamedReferenceType(const NamedReferenceTypePtr & _type) override {
         if (_type->getDeclaration())
             visitTypeDeclaration(_type->getDeclaration());
         return true;
     }
 
-    virtual bool visitFormulaDeclaration(const FormulaDeclarationPtr & _formula) {
+    bool visitFormulaDeclaration(const FormulaDeclarationPtr & _formula) override {
         m_generator.addFormula(_formula);
         return true;
     }
 
-    virtual bool visitFormulaCall(const FormulaCallPtr & _formula) {
+    bool visitFormulaCall(const FormulaCallPtr & _formula) override {
         if (_formula->getTarget())
             visitFormulaDeclaration(_formula->getTarget());
         return true;

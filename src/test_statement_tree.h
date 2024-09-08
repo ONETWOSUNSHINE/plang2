@@ -54,7 +54,7 @@ private:
                 m_os << L"var{}";
                 break;
             default:
-                prettyPrintCompact(const_cast<ir::Statement&>(_stmt), m_os);
+                prettyPrintCompact(_stmt.as<ir::Statement>(), m_os);
                 break;
         }
         m_os << "\"";

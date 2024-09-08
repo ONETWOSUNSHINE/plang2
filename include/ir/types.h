@@ -139,23 +139,20 @@ public:
 
     /// Ordered fields known by name.
     /// \return List of fields.
-    NamedValues &getNamesOrd() { return m_namesOrd; }
-    const NamedValues &getNamesOrd() const { return m_namesOrd; }
+    const NamedValuesPtr &getNamesOrd() const { return m_fields[0]; }
 
     // Ordered fields known by type.
-    NamedValues &getTypesOrd() { return m_typesOrd; }
-    const NamedValues &getTypesOrd() const { return m_typesOrd; }
+    const NamedValuesPtr &getTypesOrd() const { return m_fields[1]; }
 
     // Unordered fields known by name.
-    NamedValues &getNamesSet() { return m_namesSet; }
-    const NamedValues &getNamesSet() const { return m_namesSet; }
+    const NamedValuesPtr &getNamesSet() const { return m_fields[2]; }
 
     /// All fields. Guaranteed to have 3 elements.
     /// \return List of fields.
-    NamedValues *getAllFields() { return m_fields; }
-    const NamedValues *getAllFields() const { return m_fields; }
+    NamedValuesPtr *getAllFields() { return m_fields; }
+    const NamedValuesPtr *getAllFields() const { return m_fields; }
 
-    size_t size() const { return m_namesOrd.size() + m_typesOrd.size() + m_namesSet.size(); }
+    size_t size() const { return m_fields[0]->size() + m_fields[1]->size() + m_fields[2]->size(); }
 
     NamedValuesPtr mergeFields() const;
 
@@ -172,15 +169,18 @@ public:
 
     virtual NodePtr clone(Cloner &_cloner) const {
         StructTypePtr pCopy = NEW_CLONE(this, _cloner, StructType());
-        pCopy->getNamesOrd().appendClones(getNamesOrd(), _cloner);
-        pCopy->getTypesOrd().appendClones(getTypesOrd(), _cloner);
-        pCopy->getNamesSet().appendClones(getNamesSet(), _cloner);
+        pCopy->getNamesOrd()->appendClones(*getNamesOrd(), _cloner);
+        pCopy->getTypesOrd()->appendClones(*getTypesOrd(), _cloner);
+        pCopy->getNamesSet()->appendClones(*getNamesSet(), _cloner);
         return pCopy;
     }
 
 private:
-    NamedValues m_fields[3];
-    NamedValues &m_namesOrd, &m_typesOrd, &m_namesSet;
+    NamedValuesPtr m_fields[3] = {
+        std::make_shared<NamedValues>(),
+        std::make_shared<NamedValues>(),
+        std::make_shared<NamedValues>()
+    };
 };
 
 /// Identifier belonging to an enumeration.

@@ -73,7 +73,7 @@ int main(int _argc, const char ** _argv) {
     }
 
     if (Options::instance().bSolveTypes) {
-        tc::Formulas formulas;
+        const auto formulas = std::make_shared<tc::Formulas>();
         bool bResult = false;
         FreshTypeNames names;
 
@@ -111,7 +111,7 @@ int main(int _argc, const char ** _argv) {
 #endif
 
         if (Options::instance().transformation & OT_TRE)
-            tailRecursionElimination(*pModule);
+            tailRecursionElimination(pModule);
 
         if (Options::instance().transformation & OT_PI)
             predicateInlining(*pModule);

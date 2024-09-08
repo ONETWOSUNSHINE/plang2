@@ -721,13 +721,13 @@ bool Collector::visitStructConstructor(const StructConstructorPtr &_cons) {
         pField->setType(pDef->getValue()->getType());
 
         if (pDef->getName().empty())
-            pStruct->getTypesOrd().add(pField);
+            pStruct->getTypesOrd()->add(pField);
         else
-            pStruct->getNamesSet().add(pField);
+            pStruct->getNamesSet()->add(pField);
         pDef->setField(pField);
     }
 
-    assert(pStruct->getNamesSet().empty() || pStruct->getTypesOrd().empty());
+    assert(pStruct->getNamesSet()->empty() || pStruct->getTypesOrd()->empty());
 
     _cons->setType(pStruct);
 
@@ -745,7 +745,7 @@ bool Collector::visitUnionConstructor(const UnionConstructorPtr &_cons) {
         const auto pField = std::make_shared<NamedValue>(pDef->getName());
 
         pField->setType(pDef->getValue()->getType());
-        pCons->getStructFields()->getNamesOrd().add(pField);
+        pCons->getStructFields()->getNamesOrd()->add(pField);
         pDef->setField(pField);
     }
 
@@ -985,7 +985,7 @@ bool Collector::visitFieldExpr(const FieldExprPtr &_field) {
     const auto pField = std::make_shared<NamedValue>(_field->getFieldName(), pFresh);
 
     _field->setType(pFresh);
-    pStruct->getNamesSet().add(pField);
+    pStruct->getNamesSet()->add(pField);
 
     if (_field->getObject()->getType()->getKind() == Type::FRESH)
         pFresh->setFlags(_field->getObject()->getType()->as<tc::FreshType>()->getFlags());
@@ -1014,25 +1014,25 @@ bool Collector::visitCastExpr(const CastExprPtr &_cast) {
         bool bSuccess = true;
 
         // TODO: maybe use default values for fields.
-        if (pStruct->getNamesOrd().size() == pFields->size()) {
+        if (pStruct->getNamesOrd()->size() == pFields->size()) {
             for (size_t i = 0; i < pFields->size(); ++i) {
                 StructFieldDefinitionPtr pDef = pFields->get(i);
-                size_t cOtherIdx = pDef->getName().empty() ? i : pStruct->getNamesOrd().findByNameIdx(pDef->getName());
+                size_t cOtherIdx = pDef->getName().empty() ? i : pStruct->getNamesOrd()->findByNameIdx(pDef->getName());
 
                 if (cOtherIdx == (size_t)-1) {
                     bSuccess = false;
                     break;
                 }
 
-                NamedValuePtr pField = pStruct->getNamesOrd().get(cOtherIdx);
+                NamedValuePtr pField = pStruct->getNamesOrd()->get(cOtherIdx);
 
                 m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
                         pDef->getValue()->getType(), pField->getType()));
             }
-        } else if (pStruct->getTypesOrd().size() == pFields->size()) {
+        } else if (pStruct->getTypesOrd()->size() == pFields->size()) {
             for (size_t i = 0; i < pFields->size(); ++i) {
-                StructFieldDefinitionPtr pDef = pFields->get(i);
-                NamedValuePtr pField = pStruct->getTypesOrd().get(i);
+                const auto pDef = pFields->get(i);
+                const auto pField = pStruct->getTypesOrd()->get(i);
 
                 m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
                         pDef->getValue()->getType(), pField->getType()));

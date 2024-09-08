@@ -35,7 +35,7 @@ public:
         }
     }
 
-    bool traverseStatement(const StatementPtr& _stmt) {
+    bool traverseStatement(const StatementPtr& _stmt) override {
         const bool bResult = Visitor::traverseStatement(_stmt);
 
         if (_stmt->getKind() >= Statement::TYPE_DECLARATION)
@@ -114,7 +114,7 @@ public:
         return true;
     }
 
-    bool traverseVariableDeclaration(const VariableDeclarationPtr &_stmt) {
+    bool traverseVariableDeclaration(const VariableDeclarationPtr &_stmt) override {
         VISITOR_ENTER(VariableDeclaration, _stmt);
         m_os << namedValueName(_stmt->getVariable()) << L" : " << setInline(true);
         traverseType(_stmt->getVariable()->getType());
@@ -127,7 +127,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseTypeDeclaration(const TypeDeclarationPtr &_stmt) {
+    bool traverseTypeDeclaration(const TypeDeclarationPtr &_stmt) override {
         VISITOR_ENTER(TypeDeclaration, _stmt);
 
         VISITOR_TRAVERSE(Label, StmtLabel, _stmt->getLabel(), _stmt, Statement, setLabel);
@@ -150,13 +150,13 @@ public:
         VISITOR_EXIT();
     }
 
-    bool visitType(const ir::TypePtr &_type) {
+    bool visitType(const ir::TypePtr &_type) override {
         if (_type->getKind() <= Type::GENERIC)
             m_os << fmtType(_type->getKind());
         return true;
     }
 
-    bool traverseSubtype(const SubtypePtr &_type) {
+    bool traverseSubtype(const SubtypePtr &_type) override {
         VISITOR_ENTER(Subtype, _type);
         m_os << L"{";
         VISITOR_TRAVERSE(NamedValue, SubtypeParam, _type->getParam(), _type, Subtype, setParam);
@@ -166,7 +166,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseRange(const RangePtr &_type) {
+    bool traverseRange(const RangePtr &_type) override {
         VISITOR_ENTER(Range, _type);
         m_os << L"subrange(" << setInline(true);
         VISITOR_TRAVERSE(Expression, RangeMin, _type->getMin(), _type, Range, setMin);
@@ -176,7 +176,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseNamedReferenceType(const NamedReferenceTypePtr &_type) {
+    bool traverseNamedReferenceType(const NamedReferenceTypePtr &_type) override {
         VISITOR_ENTER(NamedReferenceType, _type);
 
         if (!_type->getDeclaration())
@@ -193,7 +193,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool visitArrayType(const ArrayTypePtr& _array) {
+    bool visitArrayType(const ArrayTypePtr& _array) override {
         const TypePtr& pBaseType = _array->getRootType();
 
         Collection<Type> dims;
@@ -211,13 +211,13 @@ public:
         return false;
     }
 
-    bool traverseEnumValue(const EnumValuePtr &_val) {
+    bool traverseEnumValue(const EnumValuePtr &_val) override {
         printComma();
         m_os << L"\n" << _val->getName();
         return true;
     }
 
-    bool traverseEnumType(const EnumTypePtr &_type) {
+    bool traverseEnumType(const EnumTypePtr &_type) override {
         VISITOR_ENTER(EnumType, _type);
         m_os << L"{" << indent;
         VISITOR_TRAVERSE_COL(EnumValue, EnumValueDecl, _type->getValues());
@@ -225,7 +225,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseListType(const ListTypePtr &_type) {
+    bool traverseListType(const ListTypePtr &_type) override {
         VISITOR_ENTER(ListType, _type);
         m_os << L"list[" << setInline(true);
         VISITOR_TRAVERSE(Type, ListBaseType, _type->getBaseType(), _type, DerivedType, setBaseType);
@@ -233,7 +233,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseSetType(const SetTypePtr &_type) {
+    bool traverseSetType(const SetTypePtr &_type) override {
         VISITOR_ENTER(SetType, _type);
         m_os << L"setof[" << setInline(true);
         VISITOR_TRAVERSE(Type, SetBaseType, _type->getBaseType(), _type, DerivedType, setBaseType);
@@ -241,7 +241,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool visitTypeType(const TypeTypePtr&) {
+    bool visitTypeType(const TypeTypePtr&) override {
         m_os << L"TYPE";
         return false;
     }
@@ -397,7 +397,7 @@ public:
         }
     }
 
-    bool visitNamedValue(const ir::NamedValuePtr &_value) {
+    bool visitNamedValue(const ir::NamedValuePtr &_value) override {
         if (!m_path.empty() && getRole() == R_VarDeclVar)
             return true;
         printComma();
@@ -405,33 +405,33 @@ public:
         return true;
     }
 
-    virtual bool visitLiteral(ir::Literal &_node) {
-        switch (_node.getLiteralKind()) {
+    bool visitLiteral(const ir::LiteralPtr &_node) override {
+        switch (_node->getLiteralKind()) {
             case ir::Literal::UNIT:
                 m_os << L"0";
                 break;
             case ir::Literal::NUMBER:
-                m_os << _node.getNumber().toString();
+                m_os << _node->getNumber().toString();
                 break;
             case ir::Literal::BOOL:
-                m_os << (_node.getBool() ? L"TRUE" : L"FALSE");
+                m_os << (_node->getBool() ? L"TRUE" : L"FALSE");
                 break;
         }
         return true;
     }
 
-    bool visitVariableReference(const ir::VariableReferencePtr &_node) {
+    bool visitVariableReference(const ir::VariableReferencePtr &_node) override {
         m_os << namedValueName(_node->getTarget());
         return false;
     }
 
-    bool visitLabel(const ir::LabelPtr &_label) {
+    bool visitLabel(const ir::LabelPtr &_label) override {
         m_os << cyrillicToASCII(_label->getName().empty()
             ? m_context.nameGenerator().getNewLabelName(L"L") : _label->getName()) << ": ";
         return true;
     }
 
-    virtual bool traverseExpression(const ir::ExpressionPtr &_node) {
+    bool traverseExpression(const ir::ExpressionPtr &_node) override {
         printComma();
 
         bool bParen;
@@ -449,14 +449,14 @@ public:
         return result;
     }
 
-    bool traverseFieldExpr(const FieldExprPtr &_expr) {
+    bool traverseFieldExpr(const FieldExprPtr &_expr) override {
         VISITOR_ENTER(FieldExpr, _expr);
         VISITOR_TRAVERSE(Expression, FieldObject, _expr->getObject(), _expr, Component, setObject);
         m_os << L"'" << _expr->getFieldName();
         VISITOR_EXIT();
     }
 
-    bool traverseStructFieldDefinition(const StructFieldDefinitionPtr &_cons) {
+    bool traverseStructFieldDefinition(const StructFieldDefinitionPtr &_cons) override {
         VISITOR_ENTER(StructFieldDefinition, _cons);
         printComma();
         if (!_cons->getName().empty())
@@ -465,7 +465,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseStructConstructor(const StructConstructorPtr &_expr) {
+    bool traverseStructConstructor(const StructConstructorPtr &_expr) override {
         VISITOR_ENTER(StructConstructor, _expr);
         m_os << L"(# ";
         VISITOR_TRAVERSE_COL(StructFieldDefinition, StructFieldDef, *_expr);
@@ -473,7 +473,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool visitListConstructor(const ListConstructorPtr &_expr) {
+    bool visitListConstructor(const ListConstructorPtr &_expr) override {
         std::wstring strParens;
         for (size_t i = 0; i < _expr->size(); ++i) {
             m_os << L"cons(";
@@ -485,7 +485,7 @@ public:
         return false;
     }
 
-    bool traverseArrayConstructor(const ArrayConstructorPtr& _array) {
+    bool traverseArrayConstructor(const ArrayConstructorPtr& _array) override {
         VISITOR_ENTER(ArrayConstructor, _array);
 
         const NamedValuePtr pIndex =std::make_shared<NamedValue>(L"", _array->getType()->as<ArrayType>()->getDimensionType());
@@ -508,7 +508,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseSetConstructor(const SetConstructorPtr &_expr) {
+    bool traverseSetConstructor(const SetConstructorPtr &_expr) override {
         VISITOR_ENTER(SetConstructor, _expr);
         if (!_expr->getType())
             VISITOR_EXIT();
@@ -530,7 +530,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseUnary(const UnaryPtr &_expr) {
+    bool traverseUnary(const UnaryPtr &_expr) override {
         VISITOR_ENTER(Unary, _expr);
 
         if (_expr->getOperator() == Unary::BITWISE_NEGATE &&
@@ -553,7 +553,7 @@ public:
         VISITOR_EXIT();
     }
 
-    virtual bool traverseBinary(const ir::BinaryPtr &_node) {
+    bool traverseBinary(const ir::BinaryPtr &_node) override {
         VISITOR_ENTER(Binary, _node);
 
         switch (_node->getOperator()) {
@@ -649,7 +649,7 @@ public:
         VISITOR_EXIT();
     }
 
-    virtual bool traverseTernary(const ir::TernaryPtr &_node) {
+    bool traverseTernary(const ir::TernaryPtr &_node) override {
         VISITOR_ENTER(Ternary, _node);
         m_os << "IF ";
         VISITOR_TRAVERSE(Expression, TernarySubexpression, _node->getIf(), _node, Ternary, setIf);
@@ -661,7 +661,7 @@ public:
         VISITOR_EXIT();
     }
 
-    virtual bool traverseFormula(const ir::FormulaPtr &_node) {
+    bool traverseFormula(const ir::FormulaPtr &_node) override {
         VISITOR_ENTER(Formula, _node);
 
         m_os << (_node->getQuantifier() == ir::Formula::EXISTENTIAL
@@ -674,7 +674,7 @@ public:
         VISITOR_EXIT();
     }
 
-    virtual bool traverseFormulaCall(const ir::FormulaCallPtr &_node) {
+    bool traverseFormulaCall(const ir::FormulaCallPtr &_node) override {
         m_os << m_context.nameGenerator().getFormulaName(_node);
 
         if (_node->getArgs().empty())
@@ -687,7 +687,7 @@ public:
         return bResult;
     }
 
-    virtual bool traverseLemmaDeclaration(const ir::LemmaDeclarationPtr &_stmt) {
+    bool traverseLemmaDeclaration(const ir::LemmaDeclarationPtr &_stmt) override {
         VISITOR_ENTER(LemmaDeclaration, _stmt);
 
         VISITOR_TRAVERSE(Label, StmtLabel, _stmt->getLabel(), _stmt, Statement, setLabel);
@@ -698,7 +698,7 @@ public:
         VISITOR_EXIT();
     }
 
-    virtual bool traverseFormulaDeclaration(const ir::FormulaDeclarationPtr &_node) {
+    bool traverseFormulaDeclaration(const ir::FormulaDeclarationPtr &_node) override {
         VISITOR_ENTER(FormulaDeclaration, _node);
 
         m_os << m_context.nameGenerator().getFormulaName(_node);
@@ -731,7 +731,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseArrayPartExpr(const ArrayPartExprPtr &_expr) {
+    bool traverseArrayPartExpr(const ArrayPartExprPtr &_expr) override {
         if (!_expr->getObject() || !_expr->getObject()->getType())
             return true;
 
@@ -757,7 +757,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseArrayPartDefinition(const ArrayPartDefinitionPtr &_cons) {
+    bool traverseArrayPartDefinition(const ArrayPartDefinitionPtr &_cons) override {
         VISITOR_ENTER(ArrayPartDefinition, _cons);
         VISITOR_TRAVERSE_COL(Expression, ArrayPartCond, _cons->getConditions());
         m_os << L" -> ";
@@ -765,7 +765,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseArrayIteration(const ArrayIterationPtr & _expr) {
+    bool traverseArrayIteration(const ArrayIterationPtr & _expr) override {
         VISITOR_ENTER(ArrayIteration, _expr);
 
         if (!_expr->getType())
@@ -791,7 +791,7 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseReplacement(const ReplacementPtr& _expr) {
+    bool traverseReplacement(const ReplacementPtr& _expr) override {
         VISITOR_ENTER(Replacement, _expr);
 
         if (_expr->getNewValues()->getConstructorKind() != Constructor::ARRAY_ITERATION || !_expr->getType())
@@ -829,17 +829,17 @@ public:
         VISITOR_EXIT();
     }
 
-    bool traverseCastExpr(const CastExprPtr &_expr) {
+    bool traverseCastExpr(const CastExprPtr &_expr) override {
         VISITOR_ENTER(CastExpr, _expr);
         VISITOR_TRAVERSE(Expression, CastParam, _expr->getExpression(), _expr, CastExpr, setExpression);
         VISITOR_EXIT();
     }
 
-    bool visitPredicate(const ir::PredicatePtr &_pred) {
+    bool visitPredicate(const ir::PredicatePtr &_pred) override {
         return false;
     }
 
-    bool traverseModule(const ir::ModulePtr &_module) {
+    bool traverseModule(const ir::ModulePtr &_module) override {
         if (_module->getName().empty())
             return Visitor::traverseModule(_module);
 
