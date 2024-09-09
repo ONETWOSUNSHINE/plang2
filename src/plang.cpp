@@ -99,7 +99,7 @@ int main(int _argc, const char ** _argv) {
         }
 
         if (Options::instance().bCheckSemantics)
-            pModule = processPreConditions(*pModule);
+            pModule = processPreConditions(pModule);
 
         if (Options::instance().verify != V_NONE)
             pModule = vf::verify(pModule);
@@ -114,7 +114,7 @@ int main(int _argc, const char ** _argv) {
             tailRecursionElimination(pModule);
 
         if (Options::instance().transformation & OT_PI)
-            predicateInlining(*pModule);
+            predicateInlining(pModule);
 
         if (Options::instance().bMoveOut) {
             tr::moveOutExpressions(pModule);
@@ -134,7 +134,7 @@ int main(int _argc, const char ** _argv) {
             pp::prettyPrintSyntax(pModule, std::wcout, NULL, true);
 
         if (Options::instance().prettyPrint & PP_CALLGRAPH)
-            printModuleSCCCallGraph(*pModule, std::wcout);
+            printModuleSCCCallGraph(pModule, std::wcout);
 
         if (Options::instance().backEnd == BE_NONE)
             return EXIT_SUCCESS;

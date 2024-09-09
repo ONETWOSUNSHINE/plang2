@@ -347,7 +347,7 @@ bool Collector::visitUnary(const UnaryPtr &_unary) {
 
                 // Set negation.
                 tc::Formulas &part2 = p->addPart();
-                const auto pSet = std::make_shared<SetType>(NULL);
+                const auto pSet = std::make_shared<SetType>(TypePtr());
 
                 pSet->setBaseType(createFresh());
                 part2.insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS,
@@ -398,7 +398,7 @@ bool Collector::visitBinary(const BinaryPtr &_binary) {
 
                 // Set operations.
                 tc::Formulas & part2 = p->addPart();
-                const auto pSet = std::make_shared<SetType>(NULL);
+                const auto pSet = std::make_shared<SetType>(TypePtr());
 
                 pSet->setBaseType(createFresh());
 
@@ -413,7 +413,7 @@ bool Collector::visitBinary(const BinaryPtr &_binary) {
 
                 if (_binary->getOperator() == Binary::ADD) {
                     tc::Formulas & part3 = p->addPart();
-                    const auto pList = std::make_shared<ListType>(NULL);
+                    const auto pList = std::make_shared<ListType>();
 
                     pList->setBaseType(createFresh());
 

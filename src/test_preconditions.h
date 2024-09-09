@@ -15,7 +15,7 @@ public:
         m_os(_os)
     {}
 
-    virtual bool visitExpression(const ir::ExpressionPtr& _expr) {
+    bool visitExpression(const ir::ExpressionPtr& _expr) override {
         vf::ConjunctionPtr pConj = getPreConditionForExpression(_expr);
 
         if (pConj->empty())
@@ -30,12 +30,12 @@ public:
         return true;
     }
 
-    virtual bool visitPredicate(const ir::PredicatePtr& _pred) {
+    bool visitPredicate(const ir::PredicatePtr& _pred) override {
         m_pPred = _pred;
         return true;
     }
 
-    virtual bool visitStatement(const ir::StatementPtr& _stmt) {
+    bool visitStatement(const ir::StatementPtr& _stmt) override {
         vf::ConjunctionPtr
             pConjPre = getPreConditionForStatement(_stmt, m_pPred),
             pConjPost = getPostConditionForStatement(_stmt);

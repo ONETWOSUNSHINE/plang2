@@ -327,9 +327,9 @@ StatementPtr extractCallArguments(const CallPtr& _pCall) {
     return modifyStatement(pMA);
 }
 
-void getArgsMap(const FormulaCall &_call, ArgsMap& _args) {
-    for (size_t i = 0; i < _call.getArgs().size(); ++i)
-        _args.addExpression(_call.getTarget()->getParams().get(i), _call.getArgs().get(i));
+void getArgsMap(const FormulaCallPtr &_call, ArgsMap& _args) {
+    for (size_t i = 0; i < _call->getArgs().size(); ++i)
+        _args.addExpression(_call->getTarget()->getParams().get(i), _call->getArgs().get(i));
 }
 
 void getArgsMap(const FunctionCall &_call, ArgsMap& _args) {
@@ -339,22 +339,22 @@ void getArgsMap(const FunctionCall &_call, ArgsMap& _args) {
 }
 
 template <class T>
-void getArgsMap(const Call &_call, ArgsMap& _args, T _pred) {
-    for (size_t i = 0; i < _call.getArgs().size(); ++i)
-        _args.addExpression(_pred.getInParams().get(i), _call.getArgs().get(i));
+void getArgsMap(const CallPtr &_call, ArgsMap& _args, const std::shared_ptr<T>& _pred) {
+    for (size_t i = 0; i < _call->getArgs().size(); ++i)
+        _args.addExpression(_pred->getInParams().get(i), _call->getArgs().get(i));
 
-    for (size_t i = 0; i < _call.getBranches().size(); ++i) {
-        CallBranch &br = *_call.getBranches().get(i);
+    for (size_t i = 0; i < _call->getBranches().size(); ++i) {
+        CallBranch &br = *_call->getBranches().get(i);
         for (size_t j = 0; j < br.size(); ++j)
-            _args.addExpression(_pred.getOutParams().get(i)->get(j), br.get(j));
+            _args.addExpression(_pred->getOutParams().get(i)->get(j), br.get(j));
     }
 }
 
-void getArgsMap(const Call &_call, ArgsMap& _args) {
-    if (_call.getPredicate()->getKind() == Expression::PREDICATE)
-        getArgsMap(_call, _args, *_call.getPredicate()->as<PredicateReference>()->getTarget());
+void getArgsMap(const CallPtr &_call, ArgsMap& _args) {
+    if (_call->getPredicate()->getKind() == Expression::PREDICATE)
+        getArgsMap(_call, _args, _call->getPredicate()->as<PredicateReference>()->getTarget());
     else
-        getArgsMap(_call, _args, *_call.getPredicate()->getType()->as<PredicateType>());
+        getArgsMap(_call, _args, _call->getPredicate()->getType()->as<PredicateType>());
 }
 
 bool isRecursiveCall(const ir::CallPtr& _pCall, const ir::PredicatePtr& _pPred) {

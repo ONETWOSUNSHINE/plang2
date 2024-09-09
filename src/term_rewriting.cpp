@@ -140,19 +140,19 @@ FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const NamedV
     return pCall;
 }
 
-FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const Predicate& _predicate) {
+FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const PredicatePtr& _predicate) {
     NamedValues params;
     getPredicateParams(_predicate, params);
     return makeCall(_pFormula, params);
 }
 
-FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const FormulaCall &_call) {
+FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const FormulaCallPtr &_call) {
     ArgsMap args;
     getArgsMap(_call, args);
     return makeCall(_pFormula, args);
 }
 
-FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const Call &_call) {
+FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, const CallPtr &_call) {
     ArgsMap args;
     getArgsMap(_call, args);
     return makeCall(_pFormula, args);

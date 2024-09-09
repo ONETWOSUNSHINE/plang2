@@ -102,7 +102,7 @@ using QuantifierConjunctPtr = std::shared_ptr<QuantifierConjunct>;
 
 using ConjunctionPtr = std::shared_ptr<class Conjunction>;
 
-class Conjunction {
+class Conjunction : public std::enable_shared_from_this<Conjunction> {
 public:
     Conjunction() {}
     Conjunction(const ConjunctPtr& _pConjunct) { m_conjuncts.insert(_pConjunct); }
@@ -144,7 +144,7 @@ public:
     void implies(const ConjunctionPtr& _pOther);
 
     bool releaseAssignments();
-    std::pair<ConjunctPtr, ConjunctionPtr> extractLogic() const;
+    std::pair<ConjunctPtr, ConjunctionPtr> extractLogic();
 
 private:
     Conjuncts m_conjuncts;
@@ -154,13 +154,13 @@ private:
     bool _releaseFirstAssignment();
     void _normalize();
 
-    static void _negate(const ConjunctPtr& _pConjunct, Conjunction& _result);
-    static void _normalize(const ConjunctPtr& _pConjunct, Conjunction& _result);
-    static void _disjunct(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight, Conjunction& _result);
-    static void _implies(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight, Conjunction& _result);
+    static ConjunctionPtr _negate(const ConjunctPtr& _pConjunct);
+    static void _normalize(const ConjunctPtr& _pConjunct, const ConjunctionPtr& _result);
+    static ConjunctionPtr _disjunct(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight);
+    static ConjunctionPtr _implies(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight);
 };
 
-class Condition {
+class Condition : public std::enable_shared_from_this<Condition> {
 public:
     enum {
         SEQUENT,
@@ -168,6 +168,11 @@ public:
     };
     Condition() {}
     virtual int getKind() const = 0;
+
+    template <class _Class>
+    std::shared_ptr<_Class> as() const {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
 };
 
 using ConditionPtr = std::shared_ptr<Condition>;
@@ -265,20 +270,20 @@ struct Context {
     bool releaseAssignments();
 
     ir::FormulaDeclarationPtr getFormula(std::map<ir::PredicatePtr, std::vector<ir::FormulaDeclarationPtr> >& _map,
-        const ir::Predicate& _pred, const ir::ExpressionPtr& _pExpr, const std::wstring& _sPrefix, size_t _nBranch);
+        const ir::PredicatePtr& _pred, const ir::ExpressionPtr& _pExpr, const std::wstring& _sPrefix, size_t _nBranch);
     ir::FormulaDeclarationPtr getFormula(std::map<ir::PredicateTypePtr, std::vector<ir::FormulaDeclarationPtr> >& _map,
-        const ir::PredicateType& _pred, const ir::ExpressionPtr& _pExpr, const std::wstring& _sPrefix, size_t _nBranch);
+        const ir::PredicateTypePtr& _pred, const ir::ExpressionPtr& _pExpr, const std::wstring& _sPrefix, size_t _nBranch);
 
-    ir::FormulaDeclarationPtr getPrecondition(const ir::Predicate& _pred, size_t _nBranch = 0);
-    ir::FormulaDeclarationPtr getPostcondition(const ir::Predicate& _pred, size_t _nBranch = 0);
-    ir::FormulaDeclarationPtr getMeasure(const ir::Predicate& _pred);
+    ir::FormulaDeclarationPtr getPrecondition(const ir::PredicatePtr& _pred, size_t _nBranch = 0);
+    ir::FormulaDeclarationPtr getPostcondition(const ir::PredicatePtr& _pred, size_t _nBranch = 0);
+    ir::FormulaDeclarationPtr getMeasure(const ir::PredicatePtr& _pred);
 
-    ir::FormulaDeclarationPtr getPrecondition(const ir::PredicateType& _pred, size_t _nBranch = 0);
-    ir::FormulaDeclarationPtr getPostcondition(const ir::PredicateType& _pred, size_t _nBranch = 0);
+    ir::FormulaDeclarationPtr getPrecondition(const ir::PredicateTypePtr& _pred, size_t _nBranch = 0);
+    ir::FormulaDeclarationPtr getPostcondition(const ir::PredicateTypePtr& _pred, size_t _nBranch = 0);
 
-    ir::FormulaDeclarationPtr getPrecondition(const ir::Call& _call, size_t _nBranch = 0);
-    ir::FormulaDeclarationPtr getPostcondition(const ir::Call& _call, size_t _nBranch = 0);
-    ir::FormulaDeclarationPtr getMeasure(const ir::Call& _call);
+    ir::FormulaDeclarationPtr getPrecondition(const ir::CallPtr& _call, size_t _nBranch = 0);
+    ir::FormulaDeclarationPtr getPostcondition(const ir::CallPtr& _call, size_t _nBranch = 0);
+    ir::FormulaDeclarationPtr getMeasure(const ir::CallPtr& _call);
 
 };
 

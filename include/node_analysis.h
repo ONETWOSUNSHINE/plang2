@@ -16,10 +16,10 @@ namespace na {
 bool containsBannedNodes(const ir::NodePtr& _pNode);
 
 // Analyze call existing.
-bool containsCall(ir::NodePtr _pNode);
+bool containsCall(const ir::NodePtr& _pNode);
 
 // Formulas collector.
-void collectFormulas(ir::Node &_node, std::set<ir::FormulaDeclarationPtr>& _container);
+void collectFormulas(const ir::NodePtr &_node, std::set<ir::FormulaDeclarationPtr>& _container);
 
 // Values analysis.
 typedef std::set<ir::NamedValuePtr> ValuesSet;
@@ -38,17 +38,17 @@ void getResults(const ir::StatementPtr& _pStatement, ValuesSet& _container);
 void getParameters(const ir::StatementPtr& _pStatement, ValuesSet& _container);
 
 // Collect arguments and results.
-typedef ir::MarkedMap<ir::NamedValue> ArgsMap;
-typedef Auto<ArgsMap> ArgsMapPtr;
+using ArgsMap = ir::MarkedMap<ir::NamedValue>;
+using ArgsMapPtr = std::shared_ptr<ArgsMap>;
 
-void getPredicateParams(const ir::Predicate &_predicate, ir::NamedValues& _params);
-void getPredicateParams(const ir::PredicateType &_predicateType, ir::NamedValues& _params);
+void getPredicateParams(const ir::PredicatePtr &_predicate, ir::NamedValues& _params);
+void getPredicateParams(const ir::PredicateTypePtr &_predicateType, ir::NamedValues& _params);
 
 ir::StatementPtr extractCallArguments(const ir::CallPtr& _pCall);
 
-void getArgsMap(const ir::FormulaCall &_call, ArgsMap& _args);
-void getArgsMap(const ir::FunctionCall &_call, ArgsMap& _args);
-void getArgsMap(const ir::Call &_call, ArgsMap& _args);
+void getArgsMap(const ir::FormulaCallPtr &_call, ArgsMap& _args);
+void getArgsMap(const ir::FunctionCallPtr &_call, ArgsMap& _args);
+void getArgsMap(const ir::CallPtr &_call, ArgsMap& _args);
 
 bool isRecursiveCall(const ir::CallPtr& _pCall, const ir::PredicatePtr& _pPred);
 
@@ -64,7 +64,7 @@ ir::ExpressionPtr resolveCase(const ir::NamedValues& _indexes, const ir::Collect
 // Formula declaration.
 ir::FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ir::ExpressionPtr &_pExpr);
 ir::FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ir::ExpressionPtr &_pExpr, const ir::NamedValues& _params);
-ir::FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ir::Predicate &_predicate, const ir::Expression &_expr);
+ir::FormulaDeclarationPtr declareFormula(const std::wstring &_strName, const ir::PredicatePtr &_predicate, const ir::ExpressionPtr &_expr);
 
 // Make module an ordered.
 std::list<ir::ModulePtr> getModulePath(const std::list<ir::Visitor::Loc>& _path);
