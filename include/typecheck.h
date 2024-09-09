@@ -231,7 +231,7 @@ private:
 
 using ContextPtr = std::shared_ptr<class Context>;
 
-struct Context {
+struct Context : public std::enable_shared_from_this<Context> {
     FormulasPtr pFormulas;
     FormulasPtr pSubsts;
     std::shared_ptr<Context> pParent;
@@ -262,6 +262,11 @@ struct Context {
         pFormulas->insert(_begin, _end);
         for(T i = _begin; i != _end; ++i)
             getConditions().insert((*i)->getConditions().begin(), (*i)->getConditions().end());
+    }
+
+    template <class _Class>
+    std::shared_ptr<_Class> as() const {
+        return std::static_pointer_cast<_Class>(shared_from_this());
     }
 
     void insertFormulas(const tc::Formulas& _formulas);

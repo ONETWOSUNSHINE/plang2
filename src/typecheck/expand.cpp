@@ -69,15 +69,15 @@ bool Expand::_expandPredicate(int _kind, const PredicateTypePtr &_pLhs,
 bool Expand::_expandStruct(int _kind, const StructTypePtr &_pLhs, const StructTypePtr &_pRhs,
         tc::FormulaList & _formulas, bool _bAllowCompound)
 {
-    const size_t cOrdFieldsL = _pLhs->getNamesOrd().size() + _pLhs->getTypesOrd().size();
-    const size_t cOrdFieldsR = _pRhs->getNamesOrd().size() + _pRhs->getTypesOrd().size();
+    const size_t cOrdFieldsL = _pLhs->getNamesOrd()->size() + _pLhs->getTypesOrd()->size();
+    const size_t cOrdFieldsR = _pRhs->getNamesOrd()->size() + _pRhs->getTypesOrd()->size();
     tc::CompoundFormulaPtr pStrict = _kind == tc::Formula::SUBTYPE_STRICT ? std::make_shared<tc::CompoundFormula>() : tc::CompoundFormulaPtr();
 
     for (size_t i = 0; i < cOrdFieldsL && i < cOrdFieldsR; ++i) {
-        NamedValuePtr pFieldL = i < _pLhs->getNamesOrd().size() ? _pLhs->getNamesOrd().get(i) :
-                _pLhs->getTypesOrd().get(i - _pLhs->getNamesOrd().size());
-        NamedValuePtr pFieldR = i < _pRhs->getNamesOrd().size() ? _pRhs->getNamesOrd().get(i) :
-                _pRhs->getTypesOrd().get(i - _pRhs->getNamesOrd().size());
+        NamedValuePtr pFieldL = i < _pLhs->getNamesOrd()->size() ? _pLhs->getNamesOrd()->get(i) :
+                _pLhs->getTypesOrd()->get(i - _pLhs->getNamesOrd()->size());
+        NamedValuePtr pFieldR = i < _pRhs->getNamesOrd()->size() ? _pRhs->getNamesOrd()->get(i) :
+                _pRhs->getTypesOrd()->get(i - _pRhs->getNamesOrd()->size());
 
         _formulas.push_back(std::make_shared<tc::Formula>(_kind, pFieldL->getType(), pFieldR->getType()));
 
@@ -92,22 +92,22 @@ bool Expand::_expandStruct(int _kind, const StructTypePtr &_pLhs, const StructTy
     typedef std::map<std::wstring, std::pair<NamedValuePtr, NamedValuePtr> > NameMap;
     NameMap fields;
 
-    for (size_t i = 0; i < _pLhs->getNamesSet().size(); ++i)
-        fields[_pLhs->getNamesSet().get(i)->getName()].first = _pLhs->getNamesSet().get(i);
+    for (size_t i = 0; i < _pLhs->getNamesSet()->size(); ++i)
+        fields[_pLhs->getNamesSet()->get(i)->getName()].first = _pLhs->getNamesSet()->get(i);
 
-    for (size_t i = 0; i < _pRhs->getNamesSet().size(); ++i)
-        fields[_pRhs->getNamesSet().get(i)->getName()].second = _pRhs->getNamesSet().get(i);
+    for (size_t i = 0; i < _pRhs->getNamesSet()->size(); ++i)
+        fields[_pRhs->getNamesSet()->get(i)->getName()].second = _pRhs->getNamesSet()->get(i);
 
-    for (size_t i = 0; i < _pLhs->getNamesOrd().size(); ++i) {
-        NamedValuePtr pField = _pLhs->getNamesOrd().get(i);
+    for (size_t i = 0; i < _pLhs->getNamesOrd()->size(); ++i) {
+        NamedValuePtr pField = _pLhs->getNamesOrd()->get(i);
         NameMap::iterator j = fields.find(pField->getName());
 
         if (j != fields.end() && j->second.second)
             j->second.first = pField;
     }
 
-    for (size_t i = 0; i < _pRhs->getNamesOrd().size(); ++i) {
-        NamedValuePtr pField = _pRhs->getNamesOrd().get(i);
+    for (size_t i = 0; i < _pRhs->getNamesOrd()->size(); ++i) {
+        NamedValuePtr pField = _pRhs->getNamesOrd()->get(i);
         NameMap::iterator j = fields.find(pField->getName());
 
         if (j != fields.end() && j->second.first)

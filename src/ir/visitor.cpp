@@ -117,9 +117,9 @@ bool Visitor::traverseEnumType(const std::shared_ptr<EnumType> &_pType) {
 
 bool Visitor::traverseStructType(const std::shared_ptr<StructType> &_pType) {
     ENTER(StructType, _pType);
-    TRAVERSE_COL(NamedValue, StructFieldDeclNameOrd, _pType->getNamesOrd());
-    TRAVERSE_COL(NamedValue, StructFieldDeclTypeOrd, _pType->getTypesOrd());
-    TRAVERSE_COL(NamedValue, StructFieldDeclNameSet, _pType->getNamesSet());
+    TRAVERSE_COL(NamedValue, StructFieldDeclNameOrd, *_pType->getNamesOrd());
+    TRAVERSE_COL(NamedValue, StructFieldDeclTypeOrd, *_pType->getTypesOrd());
+    TRAVERSE_COL(NamedValue, StructFieldDeclNameSet, *_pType->getNamesSet());
     EXIT();
 }
 

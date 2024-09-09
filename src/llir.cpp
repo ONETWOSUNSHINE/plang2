@@ -255,11 +255,11 @@ StructTypePtr Translator::translateStructType(const ir::StructTypePtr & _type) {
 
     structType = std::make_shared<StructType>();
 
-    assert(_type->getNamesSet().empty());
+    assert(_type->getNamesSet()->empty());
 
     for (size_t j = 0; j < 2; ++j)
-        for (size_t i = 0; i < _type->getAllFields()[j].size(); ++ i)
-            structType->fieldTypes().push_back(translateType(_type->getAllFields()[j].get(i)->getType()));
+        for (size_t i = 0; i < _type->getAllFields()[j]->size(); ++ i)
+            structType->fieldTypes().push_back(translateType(_type->getAllFields()[j]->get(i)->getType()));
 
     if (addType(_type, structType))
         m_pModule->types().push_back(structType);
@@ -609,10 +609,10 @@ Operand Translator::translateEq(const ir::TypePtr &_pType, const Operand & _lhs,
         case ir::Type::STRUCT: {
             const auto pStruct = _pType->as<ir::StructType>();
 
-            if (!pStruct->getNamesOrd().empty())
-                return translateEqStruct(pStruct->getNamesOrd(), _lhs, _rhs, _instrs);
-            if (!pStruct->getTypesOrd().empty())
-                return translateEqStruct(pStruct->getTypesOrd(), _lhs, _rhs, _instrs);
+            if (!pStruct->getNamesOrd()->empty())
+                return translateEqStruct(*pStruct->getNamesOrd(), _lhs, _rhs, _instrs);
+            if (!pStruct->getTypesOrd()->empty())
+                return translateEqStruct(*pStruct->getTypesOrd(), _lhs, _rhs, _instrs);
         }
     }
 
@@ -809,10 +809,10 @@ Operand Translator::translateStructConstructor(const ir::StructConstructorPtr & 
 
     const auto pStruct = _expr->getType()->as<ir::StructType>();
 
-    if (!pStruct->getNamesOrd().empty())
-        initStruct(_expr, _instrs, pStruct->getNamesOrd(), Operand(ptr->getResult()));
-    else if (!pStruct->getTypesOrd().empty())
-        initStruct(_expr, _instrs, pStruct->getTypesOrd(), Operand(ptr->getResult()));
+    if (!pStruct->getNamesOrd()->empty())
+        initStruct(_expr, _instrs, *pStruct->getNamesOrd(), Operand(ptr->getResult()));
+    else if (!pStruct->getTypesOrd()->empty())
+        initStruct(_expr, _instrs, *pStruct->getTypesOrd(), Operand(ptr->getResult()));
 
     return Operand(var);
 }

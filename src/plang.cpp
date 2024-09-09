@@ -89,7 +89,7 @@ int main(int _argc, const char ** _argv) {
 
     if (ir::ModulePtr pModule = parse(tokens)) {
         if (!Options::instance().bKeepNames)
-            resetNames(*pModule);
+            resetNames(pModule);
 
         try {
             ir::CheckAssignments().traverseNode(pModule);
@@ -122,7 +122,7 @@ int main(int _argc, const char ** _argv) {
         }
 
         if (Options::instance().bOptimize)
-            optimize(*pModule);
+            optimize(pModule);
 
         if (Options::instance().prettyPrint & PP_FLAT)
             prettyPrintFlatTree(*pModule);

@@ -115,7 +115,7 @@ void prettyPrint(const Condition& _cond, std::wostream &_os, const ContextPtr& _
             _os << L"{ ";
             prettyPrint(corr.getPrecondition(), _os);
             _os << L" } ";
-            prettyPrintCompact(*corr.getStatement(), _os);
+            prettyPrintCompact(corr.getStatement(), _os);
             _os << L" { ";
             prettyPrint(corr.getPostcondition(), _os);
             _os << L" }";
@@ -125,14 +125,14 @@ void prettyPrint(const Condition& _cond, std::wostream &_os, const ContextPtr& _
 }
 
 void prettyPrint(const vf::Context& _context, std::wostream &_os, const ContextPtr& _pContext) {
-    ContextPtr pContext = !_pContext ? std::make_shared<Context() : _pContext;
+    ContextPtr pContext = !_pContext ? std::make_shared<Context>() : _pContext;
 
     size_t cIndex = 1;
 
     for (std::list<std::pair<ConditionPtr, bool> >::const_iterator i = _context.m_conditions.begin();
         i != _context.m_conditions.end(); ++i) {
         _os << ((*i).second ? L"{" : L"[") << L"-" << cIndex++ << ((*i).second ? "}" : "]") << " ";
-        prettyPrint(i->first, _os, pContext);
+        prettyPrint(*i->first, _os, pContext);
         _os << L"\n";
     }
 

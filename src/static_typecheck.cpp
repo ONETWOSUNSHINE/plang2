@@ -59,13 +59,13 @@ void StaticTypeProver::isContains(const ExpressionPtr &_expr, const TypePtr &_ty
 }
 
 void StaticTypeProver::typeError(std::string _msg, bool _expr) {
-    if (!expr) {
+    if (!_expr) {
         printTypecheckInfo(L"Type Error", _msg);
         throw std::runtime_error(_msg);
     }
 }
 
 void StaticTypeProver::typeWarning(std::string _msg, bool _expr) {
-    if (!expr)
+    if (!_expr)
         printTypecheckInfo(L"Type Error", _msg);
 }
