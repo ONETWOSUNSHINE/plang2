@@ -85,9 +85,9 @@ private:
     int m_kind;
 };
 
-typedef Auto<class TypeNode> TypeNodePtr;
+using TypeNodePtr = std::shared_ptr<class TypeNode>;
 
-struct TypeNode : public Counted {
+struct TypeNode {
     ir::TypePtr pType;
     mutable Relations lowers, uppers;
 
@@ -132,7 +132,7 @@ typedef std::set<const TypeNode *, TypeNodePtrWeightCmp> TypeNodeQueue;
 typedef std::multimap<ir::TypePtr, FormulaPtr, PtrLess<ir::Type> > FormulasByType;
 typedef std::map<ir::TypePtr, ir::TypePtr, PtrLess<ir::Type> > TypeMap;
 
-class Lattice : public Counted {
+class Lattice {
 public:
     typedef bool (*RelationHandler)(const RelationPtr &, Lattice &, void *);
 
