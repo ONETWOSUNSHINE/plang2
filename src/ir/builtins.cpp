@@ -10,7 +10,7 @@ Builtins &Builtins::instance() {
     return builtins;
 }
 
-PredicatePtr Builtins::find(const std::wstring &_name) const {
+PredicatePtr Builtins::find(const std::wstring &_name) {
     for (size_t i = 0; i < m_predicates.size(); ++ i)
         if (m_predicates.get(i)->getName() == _name)
             return m_predicates.get(i);

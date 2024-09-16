@@ -86,3 +86,7 @@ int ArrayType::compare(const Type &_other) const {
 int ArrayType::getMonotonicity(const Type &_var) const {
     return getBaseType()->getMonotonicity(_var);
 }
+
+NodePtr ArrayType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, ArrayType(_cloner.get(getBaseType()), _cloner.get(getDimensionType())));
+}

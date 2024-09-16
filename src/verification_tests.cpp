@@ -85,7 +85,7 @@ int main(int _argc, const char ** _argv) {
 
     if (bStatementTreeTests) {
         tr::modifyModule(pModule);
-        prettyPrintFlatTree(*pModule);
+        prettyPrintFlatTree(pModule);
     }
 
     if (bConjunctiveNormalForm) {
@@ -94,7 +94,7 @@ int main(int _argc, const char ** _argv) {
             pVar->setValue(tr::conjunctiveNormalForm(pVar->getValue()));
         }
         tr::normalizeExpressions(pModule, true);
-        prettyPrintFlatTree(*pModule);
+        prettyPrintFlatTree(pModule);
     }
 
     if (bPreconditions)

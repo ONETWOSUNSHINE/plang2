@@ -63,6 +63,10 @@ TypePtr SetType::getJoin(const TypePtr &_other) {
     return pJoin ? std::make_shared<SetType>(pJoin) : SetTypePtr();
 }
 
+NodePtr SetType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, SetType(_cloner.get(getBaseType())));
+}
+
 // References.
 
 TypePtr RefType::getMeet(const TypePtr &_other) {
@@ -85,6 +89,10 @@ TypePtr RefType::getJoin(const TypePtr &_other) {
     return pJoin ? std::make_shared<RefType>(pJoin) : RefTypePtr();
 }
 
+NodePtr RefType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, RefType(_cloner.get(getBaseType())));
+}
+
 // Lists.
 
 TypePtr ListType::getMeet(const TypePtr &_other) {
@@ -105,6 +113,10 @@ TypePtr ListType::getJoin(const TypePtr &_other) {
     const auto pJoin = getBaseType()->getJoin(_other->as<ListType>()->getBaseType());
 
     return pJoin ? std::make_shared<ListType>(pJoin) : ListTypePtr();
+}
+
+NodePtr ListType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, ListType(_cloner.get(getBaseType())));
 }
 
 // Maps.
@@ -179,4 +191,8 @@ int MapType::getMonotonicity(const Type &_var) const {
         return MT_NONE;
 
     return bMonotone ? MT_MONOTONE : (bAntitone ? MT_ANTITONE : MT_CONST);
+}
+
+NodePtr MapType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, MapType(_cloner.get(getIndexType()), _cloner.get(getBaseType())));
 }

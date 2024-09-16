@@ -52,6 +52,10 @@ int main(int _argc, const char ** _argv) {
 
     const std::string &strFile = Options::instance().strInputFilename;
     std::ifstream ifs(strFile.c_str());
+    if (ifs.fail()) {
+        std::cerr << strFile << ": " << strerror(errno) << std::endl;
+        return EXIT_FAILURE;
+    }
     Tokens tokens;
 
     try {
@@ -125,10 +129,10 @@ int main(int _argc, const char ** _argv) {
             optimize(pModule);
 
         if (Options::instance().prettyPrint & PP_FLAT)
-            prettyPrintFlatTree(*pModule);
+            prettyPrintFlatTree(pModule);
 
         if (Options::instance().prettyPrint & PP_AST)
-            prettyPrint(*pModule, std::wcout);
+            prettyPrint(pModule, std::wcout);
 
         if (Options::instance().prettyPrint & PP_SYNTAX)
             pp::prettyPrintSyntax(pModule, std::wcout, NULL, true);
@@ -152,7 +156,7 @@ int main(int _argc, const char ** _argv) {
 
         llir::Module module;
 
-        llir::translate(module, * pModule);
+        llir::translate(module, pModule);
 
         if (Options::instance().backEnd & BE_PP)
             backend::generateDebug(module, std::wcout);

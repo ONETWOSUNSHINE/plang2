@@ -28,7 +28,12 @@ protected:
     Base() = default;
 public:
     template <class _Class>
-    std::shared_ptr<_Class> as() const {
+    std::shared_ptr<const _Class> as() const {
+        return std::static_pointer_cast<const _Class>(shared_from_this());
+    }
+
+    template <class _Class>
+    std::shared_ptr<_Class> as() {
         return std::static_pointer_cast<_Class>(shared_from_this());
     }
 };
@@ -773,7 +778,7 @@ private:
     Instructions m_deflt;
 };
 
-void translate(Module & _dest, const ir::Module & _from);
+void translate(Module & _dest, const ir::ModulePtr & _from);
 
 };
 

@@ -142,6 +142,8 @@ public:
     Formula(const Formula &_other) :
         m_kind(_other.m_kind), m_pLhs(_other.m_pLhs), m_pRhs(_other.m_pRhs), m_conditions(_other.m_conditions) {}
 
+    virtual ~Formula() = default;
+
     Formula &operator =(const Formula &_other) {
         m_kind = _other.m_kind;
         m_pLhs = _other.m_pLhs;
@@ -186,10 +188,15 @@ public:
         return !(*this == _other);
     }
 
-    virtual bool contains(const ir::TypePtr &_pType) const;
+    virtual bool contains(const ir::Type &_type) const;
 
     template <class _Class>
-    std::shared_ptr<_Class> as() const {
+    std::shared_ptr<_Class> as() {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
+
+    template <class _Class>
+    const std::shared_ptr<_Class> as() const {
         return std::static_pointer_cast<_Class>(shared_from_this());
     }
 private:
@@ -241,6 +248,7 @@ struct Context : public std::enable_shared_from_this<Context> {
     Context();
     Context(const FormulasPtr &_pFormulas, const FormulasPtr &_pSubsts);
     Context(const FormulasPtr &_pFormulas, const ContextPtr &_pParent);
+    virtual ~Context() = default;
 
     ir::TypePtr lookup(const tc::Formula &_f, const tc::Formula &_cond);
     bool rewrite(const ir::TypePtr &_pOld, const ir::TypePtr &_pNew, bool _bRewriteFlags = true);
@@ -255,7 +263,8 @@ struct Context : public std::enable_shared_from_this<Context> {
     void rewriteTypesInConditions();
 
     Formulas &operator *() const { return *pFormulas; }
-    Formulas *operator ->() const { return pFormulas.get(); }
+
+    const FormulasPtr &formulas() const { return pFormulas; }
 
     template<typename T>
     void insert(T _begin, T _end) {
@@ -265,8 +274,13 @@ struct Context : public std::enable_shared_from_this<Context> {
     }
 
     template <class _Class>
-    std::shared_ptr<_Class> as() const {
+    std::shared_ptr<_Class> as() {
         return std::static_pointer_cast<_Class>(shared_from_this());
+    }
+
+    template <class _Class>
+    std::shared_ptr<const _Class> as() const {
+        return std::static_pointer_cast<const _Class>(shared_from_this());
     }
 
     void insertFormulas(const tc::Formulas& _formulas);
@@ -310,6 +324,7 @@ struct ContextStack {
 class CompoundFormula : public Formula {
 public:
     CompoundFormula() : Formula(COMPOUND) {}
+    ~CompoundFormula() override = default;
 
     size_t size() const { return m_parts.size(); }
     Formulas &getPart(size_t _i) { return *m_parts[_i]; }
@@ -324,7 +339,7 @@ public:
     size_t count() const;
     virtual FormulaPtr clone(Cloner &_cloner) const;
 
-    virtual bool contains(const ir::TypePtr &_pType) const;
+    bool contains(const ir::Type &_type) const override;
 
     virtual bool operator ==(const Formula &_other) const;
 

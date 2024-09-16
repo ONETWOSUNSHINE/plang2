@@ -19,6 +19,7 @@ set(SOURCES_ST
     ../src/ir/type_union.cpp
     ../src/ir/visitor.cpp
     ../src/ir/declarations.cpp
+    ../src/ir/statements.cpp
     ../src/lexer.cpp
     ../src/numbers.cpp
     ../src/options.cpp
@@ -34,6 +35,7 @@ set(SOURCES_ST
     ../src/typecheck.cpp
     ../src/solve_constraints.cpp
     ../src/collect_constraints.cpp
+    ../src/static_typecheck.cpp
     ../src/type_lattice.cpp
     ../src/generate_semantics.cpp
     ../src/generate_name.cpp

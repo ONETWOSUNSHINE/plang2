@@ -141,7 +141,7 @@ int Type::compare(const Type &_other) const {
         return getKind() == _other.getKind() ? ORD_EQUALS : ORD_SUPER;
 
     if (getKind() == FRESH || _other.getKind() == FRESH) {
-        if (contains(_other.as<Type>()) || _other.contains(as<Type>()))
+        if (contains(_other) || _other.contains(*this))
             return ORD_NONE;
         return ORD_UNKNOWN;
     }
@@ -214,8 +214,11 @@ bool Type::less(const Node& _other) const {
 
 bool Type::equals(const Node& _other) const {
     assert(_other.getNodeKind() == Node::TYPE);
-    const Type& other = (const Type&)_other;
-    return getKind() == other.getKind() && !less(other) && !other.less(*this);
+    return equals((const Type&)_other);
+}
+
+bool Type::equals(const Type& _other) const {
+    return getKind() == _other.getKind() && !less(_other) && !_other.less(*this);
 }
 
 static
@@ -251,7 +254,7 @@ int maxBitsIntNat(int _bitsInt, int _bitsNat) {
         const auto fresh = getKind() == FRESH ? as<Type>() : _other;
         const auto other = getKind() == FRESH ? _other : as<Type>();
 
-        if (other->contains(fresh))
+        if (other->contains(*fresh))
             return std::make_pair(std::make_shared<Type>(TOP), false);
 
         return std::make_pair(TypePtr(), false);
@@ -298,7 +301,7 @@ int maxBitsIntNat(int _bitsInt, int _bitsNat) {
         const auto fresh = getKind() == FRESH ? as<Type>() : _other;
         const auto other = getKind() == FRESH ? _other : as<Type>();
 
-        if (other->contains(fresh))
+        if (other->contains(*fresh))
             return std::make_pair(std::make_shared<Type>(BOTTOM), false);
 
         return std::make_pair(TypePtr(), false);
@@ -336,7 +339,7 @@ void ArrayType::getDimensions(Collection<Type>& _dimensions) const {
         getBaseType()->as<ArrayType>()->getDimensions(_dimensions);
 }
 
-RangePtr Subtype::asRange() const {
+RangePtr Subtype::asRange() {
     Matches matches;
     const auto pMask =
         std::make_shared<Binary>(Binary::BOOL_AND,
@@ -351,13 +354,17 @@ RangePtr Subtype::asRange() const {
     pMask->getLeftSide()->setType(std::make_shared<Type>(Type::BOOL));
     pMask->getRightSide()->setType(std::make_shared<Type>(Type::BOOL));
 
-    if (!Expression::matches(getExpression(), pMask->as<Expression>(), matches.as<Matches>()))
+    if (!Expression::_matches(getExpression(), pMask->as<Expression>(), matches.as<Matches>()))
         return NULL;
     return std::make_shared<Range>(matches.getExprByName(L"a"), matches.getExprByName(L"b"));
 }
 
+NodePtr Subtype::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, Subtype(_cloner.get(getParam()), _cloner.get(getExpression())));
+}
+
 SubtypePtr Range::asSubtype() const {
-    const auto pParam = std::make_shared<NamedValue>(L"", new Type(Type::GENERIC));
+    const auto pParam = std::make_shared<NamedValue>(L"", std::make_shared<Type>(Type::GENERIC));
     const auto pExpr = std::make_shared<Binary>(Binary::BOOL_AND,
         std::make_shared<Binary>(Binary::GREATER_OR_EQUALS,
             std::make_shared<VariableReference>(pParam),
@@ -371,6 +378,10 @@ SubtypePtr Range::asSubtype() const {
     pExpr->getRightSide()->setType(std::make_shared<Type>(Type::BOOL));
 
     return std::make_shared<Subtype>(pParam, pExpr);
+}
+
+NodePtr Range::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, Range(_cloner.get(getMin()), _cloner.get(getMax())));
 }
 
 bool Type::isMonotone(const Type &_var, bool _bStrict) const {
@@ -445,6 +456,10 @@ bool TypeType::less(const Type &_other) const {
     return other.m_pDecl && other.m_pDecl->getType();
 }
 
+NodePtr TypeType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, TypeType(_cloner.get(getDeclaration())));
+}
+
 // Parameterized type.
 
 int ParameterizedType::getMonotonicity(const Type &_var) const {
@@ -453,6 +468,24 @@ int ParameterizedType::getMonotonicity(const Type &_var) const {
 
     // TODO: consider parameters after other operators of parameterized types get implemented.
     return getActualType()->getMonotonicity(_var);
+}
+
+NodePtr ParameterizedType::clone(Cloner &_cloner) const {
+    ParameterizedTypePtr pCopy = NEW_CLONE(this, _cloner, ParameterizedType(_cloner.get(getActualType())));
+    pCopy->getParams().appendClones(getParams(), _cloner);
+    return pCopy;
+}
+
+NodePtr EnumValue::clone(Cloner &_cloner) const {
+    const EnumValuePtr pCopy = NEW_CLONE(this, _cloner, EnumValue(getName(), getOrdinal(), _cloner.get(getType())));
+    pCopy->setLoc(this->getLoc());
+    return pCopy;
+}
+
+NodePtr EnumType::clone(Cloner &_cloner) const {
+    EnumTypePtr pCopy = NEW_CLONE(this, _cloner, EnumType());
+    pCopy->getValues().appendClones(getValues(), _cloner);
+    return pCopy;
 }
 
 TypePtr& UnionConstructorDeclaration::getFields() {
@@ -489,6 +522,13 @@ bool UnionConstructorDeclaration::equals(const Node& _other) const {
         && _equals(getFields(), other.getFields());
 }
 
+NodePtr UnionConstructorDeclaration::clone(Cloner &_cloner) const {
+    const UnionConstructorDeclarationPtr pCopy = NEW_CLONE(this, _cloner, UnionConstructorDeclaration(getName(),
+            getOrdinal(), _cloner.get(getUnion()), _cloner.get(getFields())));
+    pCopy->setLoc(this->getLoc());
+    return pCopy;
+}
+
 bool NamedReferenceType::rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags) {
     bool bResult = false;
     for (size_t i = 0; i < m_args.size(); ++i) {
@@ -520,6 +560,12 @@ bool NamedReferenceType::equals(const Type &_other) const {
         && getArgs() == other.getArgs();
 }
 
+NodePtr NamedReferenceType::clone(Cloner &_cloner) const {
+    NamedReferenceTypePtr pCopy = NEW_CLONE(this, _cloner, NamedReferenceType(_cloner.get(getDeclaration(), true)));
+    pCopy->getArgs().appendClones(getArgs(), _cloner);
+    return pCopy;
+}
+
 bool TypeDeclaration::less(const Node &_other) const {
     if (!Statement::equals(_other))
         return Statement::less(_other);
@@ -538,4 +584,11 @@ bool TypeDeclaration::equals(const Node &_other) const {
     return getKind() == other.getKind()
         && _equals(getType(), other.getType())
         && getName() == other.getName();
+}
+
+NodePtr TypeDeclaration::clone(Cloner &_cloner) const {
+    const TypeDeclarationPtr pCopy = NEW_CLONE(this, _cloner, TypeDeclaration(getName(),
+            _cloner.get(getType()), _cloner.get(getLabel())));
+    pCopy->setLoc(this->getLoc());
+    return pCopy;
 }

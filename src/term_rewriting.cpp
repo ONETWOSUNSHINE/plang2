@@ -69,8 +69,8 @@ std::pair<NodePtr, NodePtr> extractFirstCall(const NodePtr& _node) {
 class ExcludeCasts : public Visitor {
 public:
     ExcludeCasts() : Visitor(CHILDREN_FIRST) {}
-    virtual bool visitCastExpr(CastExpr& _expr) {
-        callSetter(_expr.getExpression());
+    bool visitCastExpr(const CastExprPtr& _expr) override {
+        callSetter(_expr->getExpression());
         return true;
     }
 };
@@ -89,20 +89,20 @@ class ModifyStatements : public Visitor {
 public:
     ModifyStatements() {}
 
-    virtual bool _traverseAnonymousPredicate(AnonymousPredicate &_decl) {
+    bool _traverseAnonymousPredicate(const AnonymousPredicatePtr &_decl) override {
         const StatementPtr
-            pOldStatement = _decl.getBlock(),
+            pOldStatement = _decl->getBlock(),
             pNewStatement = modifyStatement(pOldStatement);
 
         if (!pNewStatement)
             return true;
 
-        _decl.getBlock()->clear();
+        _decl->getBlock()->clear();
 
         if (pNewStatement->getKind() == Statement::BLOCK)
-            _decl.getBlock()->assign(*pNewStatement->as<Block>().get());
+            _decl->getBlock()->assign(*pNewStatement->as<Block>().get());
         else
-            _decl.getBlock()->add(pNewStatement);
+            _decl->getBlock()->add(pNewStatement);
 
         return true;
     }
@@ -118,7 +118,8 @@ FormulaCallPtr makeCall(const ir::FormulaDeclarationPtr& _pFormula, ArgsMap& _ar
 
     FormulaCallPtr pCall = std::make_shared<FormulaCall>(_pFormula);
     for (size_t i = 0; i < _pFormula->getParams().size(); ++i) {
-        const ExpressionPtr pArg = _args.getExpression(_pFormula->getParams().get(i));
+        const auto param = _pFormula->getParams().get(i);
+        const ExpressionPtr pArg = _args.getExpression(param);
         assert(pArg);
         pCall->getArgs().add(pArg);
     }
@@ -162,19 +163,19 @@ class FormulasCollector : public Visitor {
 public:
     FormulasCollector(std::set<FormulaDeclarationPtr>& _formulas) :
         m_pTraversedFormulas(_formulas) {}
-    virtual bool traverseFormulaCall(FormulaCall& _call);
+    bool traverseFormulaCall(const FormulaCallPtr& _call) override;
 
 private:
     std::set<FormulaDeclarationPtr>& m_pTraversedFormulas;
 };
 
-bool FormulasCollector::traverseFormulaCall(FormulaCall& _call) {
-    if (!_call.getTarget())
+bool FormulasCollector::traverseFormulaCall(const FormulaCallPtr& _call) {
+    if (!_call->getTarget())
         return true;
-    if (!m_pTraversedFormulas.insert(_call.getTarget()).second)
+    if (!m_pTraversedFormulas.insert(_call->getTarget()).second)
         return true;
 
-    traverseNode(_call.getTarget());
+    traverseNode(_call->getTarget());
 
     return true;
 }
@@ -194,7 +195,7 @@ public:
         Visitor(CHILDREN_FIRST), m_container(_container)
     {}
 
-    virtual bool traverseModule(const ModulePtr& _module) {
+    bool traverseModule(const ModulePtr& _module) override {
         TypesMap last;
         last.swap(m_container);
 
@@ -207,7 +208,7 @@ public:
         return bResult;
     }
 
-    virtual bool visitType(const TypePtr& _type) {
+    bool visitType(const TypePtr& _type) override {
         if (getParent() && getParent()->getNodeKind() == Node::STATEMENT &&
             getParent()->as<Statement>()->getKind() == Statement::TYPE_DECLARATION)
             return true;
@@ -223,7 +224,7 @@ public:
 
         auto iReference = m_container.find(_type);
         if (iReference == m_container.end()) {
-            TypeDeclarationPtr pDedclaration = std::make_shared<TypeDeclaration>(L"", &_type);
+            TypeDeclarationPtr pDedclaration = std::make_shared<TypeDeclaration>(L"", _type);
             pReference = std::make_shared<NamedReferenceType>(pDedclaration);
             m_container.insert(std::make_pair(_type, pReference));
         } else
@@ -251,7 +252,7 @@ public:
         Visitor(CHILDREN_FIRST), m_container(_container)
     {}
 
-    virtual bool traverseModule(const ModulePtr& _module) {
+    bool traverseModule(const ModulePtr& _module) override {
         ExpressionMap last;
         last.swap(m_container);
 
@@ -264,7 +265,7 @@ public:
         return bResult;
     }
 
-    virtual bool traverseVariableDeclaration(VariableDeclaration& _var) {
+    bool traverseVariableDeclaration(const VariableDeclarationPtr& _var) override {
         return true;
     }
 
@@ -285,19 +286,19 @@ public:
         callSetter(makeCall(pFormula, params));
     }
 
-    virtual bool visitReplacement(const ReplacementPtr& _expr) {
+    bool visitReplacement(const ReplacementPtr& _expr) override {
         if (_expr->getNewValues()->getConstructorKind() == Constructor::ARRAY_ITERATION)
             moveOut(_expr);
         return true;
     }
 
-    virtual bool visitArrayIteration(const ArrayIterationPtr &_expr) {
+    bool visitArrayIteration(const ArrayIterationPtr &_expr) override {
         if (getRole() != R_ReplacementValue)
             moveOut(_expr);
         return true;
     }
 
-    virtual bool visitArrayConstructor(const ArrayConstructorPtr &_expr) {
+    bool visitArrayConstructor(const ArrayConstructorPtr &_expr) override {
         moveOut(_expr);
         return true;
     }
@@ -321,11 +322,11 @@ public:
     TypePtr getFromType(const TypeDeclarationPtr& _pType);
     TypePtr getFromFreshType(const TypePtr& _pType);
 
-    virtual bool visitVariableReference(const VariableReferencePtr& _var);
-    virtual bool visitNamedReferenceType(const NamedReferenceTypePtr& _type);
-    virtual bool visitType(const TypePtr& _type);
+    bool visitVariableReference(const VariableReferencePtr& _var) override;
+    bool visitNamedReferenceType(const NamedReferenceTypePtr& _type) override;
+    bool visitType(const TypePtr& _type) override;
 
-    virtual bool traverseNamedValue(const NamedValuePtr& _node);
+    bool traverseNamedValue(const NamedValuePtr& _node) override;
 
 private:
     const NamedValues &m_params;
@@ -411,7 +412,7 @@ public:
 
     static void extractBinaryOperands(const BinaryPtr& _pBinary, int _nOperator,
             const TypePtr & _pType, Operands& _container, bool _bIgnoreTypes, bool _bFirst);
-    virtual bool visitBinary(const BinaryPtr& _bin);
+    bool visitBinary(const BinaryPtr& _bin) override;
 
     NodePtr run();
 

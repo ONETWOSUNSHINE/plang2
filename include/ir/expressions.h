@@ -104,7 +104,7 @@ public:
     };
 
     /// Default constructor.
-    Expression() : m_pType(NULL) {}
+    Expression() {}
 
     virtual int getNodeKind() const { return Node::EXPRESSION; }
 
@@ -115,16 +115,16 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
-    static bool matches(const ExpressionPtr& _pLeft, const ExpressionPtr& _pRight, const MatchesPtr& _pMatches = NULL) {
-        return _matches(_pLeft, _pRight, _pMatches);
-    }
+    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches);
+    virtual bool matches(const ExpressionConstPtr& _other) const;
+    static bool _matches(const ExpressionPtr& _pLeft, const ExpressionPtr& _pRight, const MatchesPtr& _pMatches);
+    static bool _matches(const ExpressionConstPtr& _pLeft, const ExpressionConstPtr& _pRight);
 
     static void substitute(ExpressionPtr& _pExpr, Matches& _matches);
     static NodePtr substitute(const ir::NodePtr &_pNode, const ir::ExpressionPtr &_pFrom, const ir::ExpressionPtr &_pTo);
 
     static bool implies(const ExpressionPtr& _pLeft, const ExpressionPtr& _pRight);
-    bool implies(const ExpressionPtr& _other) const {
+    bool implies(const ExpressionPtr& _other) {
         return Expression::implies(shared_from_this()->as<Expression>(), _other);
     }
 
@@ -137,7 +137,6 @@ public:
     void setType(const TypePtr &_pType) { m_pType = _pType; }
 
 protected:
-    static bool _matches(const ExpressionPtr& _pLeft, const ExpressionPtr& _pRight, MatchesPtr _pMatches = NULL);
     static bool matchNamedValues(const NamedValues& _left, const NamedValues& _right);
     static bool matchCollections(const Collection<Expression>& _left, const Collection<Expression>& _right, MatchesPtr _pMatches = NULL);
 
@@ -171,10 +170,10 @@ template<class _Marker>
 class MarkedMap : public Node {
 public:
     MarkedMap() {}
-    void addExpression(const std::shared_ptr<_Marker>& _mark, const ExpressionPtr& _pExpr) {
+    void addExpression(const std::shared_ptr<const _Marker>& _mark, const ExpressionPtr& _pExpr) {
         m_map.insert(std::make_pair(_mark, _pExpr));
     }
-    ExpressionPtr getExpression(const std::shared_ptr<_Marker>& _mark) {
+    ExpressionPtr getExpression(const std::shared_ptr<const _Marker>& _mark) {
         const auto it = m_map.find(_mark);
         if (it != m_map.end())
             return it->second;
@@ -187,10 +186,10 @@ public:
         return m_map.size();
     }
 protected:
-    std::map<std::shared_ptr<_Marker>, ExpressionPtr, PtrLess<_Marker> > m_map;
+    std::map<std::shared_ptr<const _Marker>, ExpressionPtr, PtrLess<_Marker> > m_map;
 };
 
-class Matches : public MarkedMap<Wild> {
+class Matches : public MarkedMap<const Wild> {
 public:
     Matches() {}
     ExpressionPtr getExprByName(const std::wstring& _sName) {
@@ -296,7 +295,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -312,12 +312,16 @@ private:
 class VariableReference : public Expression {
 public:
     /// Default constructor.
-    VariableReference() : m_pTarget(NULL) {}
+    VariableReference() {}
 
+    VariableReference(const std::wstring &_strName) :
+        m_strName(_strName)
+    {
+    }
     /// Initialize using name.
     /// \param _strName Identifier.
     /// \param _pTarget Referenced variable.
-    VariableReference(const std::wstring &_strName, const NamedValuePtr &_pTarget = NULL) :
+    VariableReference(const std::wstring &_strName, const NamedValuePtr &_pTarget) :
         m_pTarget(_pTarget), m_strName(_strName)
     {
         if (_pTarget)
@@ -358,7 +362,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -410,11 +415,10 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, PredicateReference(m_strName, _cloner.get(m_pTarget, true), _cloner.get(getType())));
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     PredicatePtr m_pTarget;
@@ -474,7 +478,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -635,7 +640,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -690,7 +696,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -722,7 +729,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -763,7 +771,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -821,7 +830,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -877,7 +887,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
 private:
     ExpressionPtr m_pObject;
@@ -901,7 +912,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     bool isRestrict() const;
 
@@ -931,7 +943,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -966,7 +979,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -997,7 +1011,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -1026,7 +1041,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
 protected:
     UnionConstructorDeclarationPtr m_pConstructor;
@@ -1115,10 +1131,16 @@ public:
             : false;
     }
 
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const {
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override {
         return Expression::equals(*_other.get()) //TODO:dyp: fix
-            ? getConstructorKind() == ((const Constructor&)_other).getConstructorKind()
+            ? getConstructorKind() == _other->as<Constructor>()->getConstructorKind()
             : Expression::matches(_other, _pMatches);
+    }
+
+    bool matches(const ExpressionConstPtr& _other) const override {
+        return Expression::equals(*_other.get()) //TODO:dyp: fix
+            ? getConstructorKind() == _other->as<Constructor>()->getConstructorKind()
+            : Expression::matches(_other);
     }
 };
 
@@ -1146,7 +1168,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -1178,7 +1201,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -1211,7 +1235,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -1248,7 +1273,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -1295,11 +1321,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        BranchPtr pExpr = NEW_CLONE(this, _cloner, Branch(_cloner.get(getLabel()), _cloner.get(getPreCondition()), _cloner.get(getPostCondition())));
-        pExpr->appendClones(*this, _cloner);
-        return pExpr;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     LabelPtr m_pLabel;
@@ -1425,7 +1447,8 @@ public:
 
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
-    virtual bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) const;
+    bool matches(const ExpressionPtr& _other, const MatchesPtr& _pMatches) override;
+    bool matches(const ExpressionConstPtr& _other) const override;
 
     virtual NodePtr clone(Cloner &_cloner) const;
 
@@ -1463,9 +1486,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, ElementDefinition(_cloner.get(getIndex()), _cloner.get(getValue())));
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     ExpressionPtr m_pIndex, m_pValue;
@@ -1510,9 +1531,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, StructFieldDefinition(_cloner.get(getValue()), _cloner.get(getField()), getName()));
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     ExpressionPtr m_pValue;
@@ -1668,11 +1687,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        ArrayPartDefinitionPtr pCopy = NEW_CLONE(this, _cloner, ArrayPartDefinition(_cloner.get(getExpression())));
-        pCopy->getConditions().appendClones(getConditions(), _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     ExpressionPtr m_pExpression;

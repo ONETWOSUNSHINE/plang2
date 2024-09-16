@@ -35,12 +35,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const PredicatePtr pCopy = NEW_CLONE(this, _cloner, Predicate(getName(), isBuiltin()));
-        cloneTo(*pCopy, _cloner);
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     std::wstring m_strName;
@@ -91,11 +86,7 @@ public:
     Params &getParams() { return m_params; }
     const Params &getParams() const { return m_params; }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        MessagePtr pCopy = NEW_CLONE(this, _cloner, Message(getProcessingType(), getName()));
-        pCopy->getParams().appendClones(getParams(), _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     int m_processingType;
@@ -140,13 +131,7 @@ public:
     /// \return Predicate body.
     const BlockPtr &getBlock() const { return m_pBlock; }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const ProcessPtr pCopy = NEW_CLONE(this, _cloner, Process(getName(), _cloner.get(getBlock())));
-        pCopy->getInParams().appendClones(getInParams(), _cloner);
-        pCopy->getOutParams().appendClones(getOutParams(), _cloner);
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     Branches m_paramsOut;
@@ -202,9 +187,7 @@ public:
             : false;
     }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, Variable(m_kind == LOCAL, getName(), _cloner.get(getType()), isMutable(), _cloner.get(getDeclaration(), true)));
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     bool m_bMutable;
@@ -257,11 +240,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const VariableDeclarationPtr pCopy = NEW_CLONE(this, _cloner, VariableDeclaration(_cloner.get(getVariable()), _cloner.get(getValue()), _cloner.get(getLabel())));
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     VariablePtr m_pVar;
@@ -273,11 +252,7 @@ public:
     VariableDeclarationGroup() {}
     virtual int getKind() const { return VARIABLE_DECLARATION_GROUP; }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const auto pCopy = NEW_CLONE(this, _cloner, VariableDeclarationGroup());
-        pCopy->appendClones(*this, _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 };
 
 /// Statement that wraps type declaration.
@@ -287,8 +262,14 @@ public:
     /// \param _strName Declared type name.
     /// \param _pType Underlying type.
     /// \param _pLabel Statement label.
-    TypeDeclaration(const std::wstring &_strName = L"", const TypePtr &_pType = NULL, const LabelPtr &_pLabel = NULL) :
+    TypeDeclaration(const std::wstring &_strName, const TypePtr &_pType, const LabelPtr &_pLabel) :
         Statement(_pLabel), m_strName(_strName), m_pType(_pType) {}
+
+    TypeDeclaration(const std::wstring &_strName, const TypePtr &_pType) :
+        Statement(LabelPtr()), m_strName(_strName), m_pType(_pType) {}
+
+    TypeDeclaration(const std::wstring &_strName = L"") :
+        Statement(LabelPtr()), m_strName(_strName) {}
 
     /// Get statement kind.
     /// \returns #TypeDeclaration.
@@ -313,12 +294,7 @@ public:
     virtual bool less(const Node &_other) const;
     virtual bool equals(const Node &_other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const TypeDeclarationPtr pCopy = NEW_CLONE(this, _cloner, TypeDeclaration(getName(),
-                _cloner.get(getType()), _cloner.get(getLabel())));
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     std::wstring m_strName;
@@ -380,13 +356,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const FormulaDeclarationPtr pCopy = NEW_CLONE(this, _cloner, FormulaDeclaration(getName(), _cloner.get(getResultType()),
-            _cloner.get(getFormula()), _cloner.get(getMeasure()), _cloner.get(getLabel())));
-        pCopy->getParams().appendClones(getParams(), _cloner);
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     std::wstring m_strName;
@@ -433,9 +403,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        return NEW_CLONE(this, _cloner, LemmaDeclaration(_cloner.get(getProposition()), _cloner.get(getLabel())));
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     ExpressionPtr m_pProposition;
@@ -532,11 +500,7 @@ public:
     /// \param _pClass Pointer to ancestor class declaration.
     void setAncestor(const ClassPtr &_pClass) { m_pAncestor = _pClass; }
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        ClassPtr pCopy = NEW_CLONE(this, _cloner, Class(getName(), _cloner.get(getAncestor(), true)));
-        cloneTo(*pCopy, _cloner);
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
 private:
     ClassPtr m_pAncestor;
@@ -584,16 +548,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
 
-    virtual NodePtr clone(Cloner &_cloner) const {
-        const ModulePtr pCopy = NEW_CLONE(this, _cloner, Module(getName()));
-        pCopy->getParams().appendClones(getParams(), _cloner);
-        cloneTo(*pCopy, _cloner);
-        pCopy->getImports() = getImports();
-        pCopy->getClasses().appendClones(getClasses(), _cloner);
-        pCopy->getModules().appendClones(getModules(), _cloner);
-        pCopy->setLoc(this->getLoc());
-        return pCopy;
-    }
+    NodePtr clone(Cloner &_cloner) const override;
 
     bool isTrivial() const {
         return getPredicates().empty() && getTypes().empty() && getVariables().empty()

@@ -65,10 +65,10 @@ bool UnionType::hasFresh() const {
     return false;
 }
 
-bool UnionType::contains(const TypePtr &_pType) const {
+bool UnionType::contains(const Type &_type) const {
     for (size_t i = 0; i < m_constructors.size(); ++i)
         if (m_constructors.get(i)->getFields() &&
-            m_constructors.get(i)->getFields()->contains(_pType))
+            m_constructors.get(i)->getFields()->contains(_type))
             return true;
     return false;
 }
@@ -213,4 +213,18 @@ int UnionType::getMonotonicity(const Type &_var) const {
     }
 
     return bMonotone ? MT_MONOTONE : (bAntitone ? MT_ANTITONE : MT_CONST);
+}
+
+NodePtr UnionType::clone(Cloner &_cloner) const {
+    UnionTypePtr pCopy = NEW_CLONE(this, _cloner, UnionType());
+    pCopy->getConstructors().appendClones(getConstructors(), _cloner);
+    return pCopy;
+}
+
+NodePtr OptionalType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, OptionalType(_cloner.get(getBaseType())));
+}
+
+NodePtr SeqType::clone(Cloner &_cloner) const {
+    return NEW_CLONE(this, _cloner, SeqType(_cloner.get(getBaseType())));
 }

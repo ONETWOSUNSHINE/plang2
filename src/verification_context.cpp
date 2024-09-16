@@ -296,14 +296,14 @@ void Conjunction::_normalize() {
 ConjunctionPtr Conjunction::_disjunct(const ConjunctionPtr& _pLeft, const ConjunctionPtr& _pRight) {
     const auto result = std::make_shared<Conjunction>();
     if (!_pLeft || !_pRight)
-        return;
+        return result;
     if (_pLeft->empty() && _pRight->empty())
-        return;
+        return result;
     if (_pLeft->empty() || _pRight->empty()) {
         result->clear();
         result->append(_pLeft);
         result->append(_pRight);
-        return;
+        return result;
     }
 
     for (auto i: _pLeft->getConjuncts())
@@ -318,16 +318,16 @@ ConjunctionPtr Conjunction::_implies(const ConjunctionPtr& _pLeft, const Conjunc
     const auto result = std::make_shared<Conjunction>();
 
     if (!_pLeft && !_pRight)
-        return;
+        return result;
 
     if (!_pLeft) {
         result->assign(_pRight);
-        return;
+        return result;
     }
     if (!_pRight) {
         result->assign(_pLeft);
         result->negate();
-        return;
+        return result;
     }
 
     for (auto i: _pLeft->getConjuncts())

@@ -49,7 +49,7 @@ protected:
 
     bool _runCompound(int & _result);
     virtual bool _run(int & _result) = 0;
-    Context& _context();
+    ContextPtr _context();
     void _enumerateFreshTypes(const CompoundFormulaPtr &_cf, FreshTypeSet &_types);
 
 protected:

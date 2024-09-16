@@ -17,10 +17,10 @@ protected:
 
 bool Explode::_run(int & /* _nResult */) {
     tc::FormulaList formulas;
-    tc::Formulas::iterator iCF = _context()->beginCompound();
+    const auto iCF = _context()->formulas()->beginCompound();
     std::set<TypePtr, PtrLess<Type> > processed;
 
-    for (tc::Formulas::iterator iFormula = _context()->begin();
+    for (tc::Formulas::iterator iFormula = _context()->formulas()->begin();
             iFormula != iCF; ++iFormula)
     {
         tc::Formula &f = **iFormula;

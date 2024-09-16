@@ -191,7 +191,7 @@ std::wstring PrettyPrinterBase::fmtType(int _kind) {
         }
 
 #define HANDLER(_ROLE)                                  \
-    virtual int handle##_ROLE(Node &_node) {            \
+    virtual int handle##_ROLE(NodePtr &) {            \
         m_os << fmtIndent(L"* " WIDEN(#_ROLE) L"\n");   \
         return 0;                                       \
     }
@@ -418,7 +418,7 @@ public:
 
         size_t c = 0;
 
-        for (tc::Formulas::iterator i = _constraints->begin(); i != _constraints->end(); ++i, ++c) {
+        for (tc::Formulas::iterator i = _constraints.formulas()->begin(); i != _constraints.formulas()->end(); ++i, ++c) {
             tc::Formula &f = **i;
 
             if (!f.is(tc::Formula::COMPOUND))

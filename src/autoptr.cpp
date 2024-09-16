@@ -4,15 +4,6 @@
 #include "autoptr.h"
 #include "utils.h"
 
-template<class _Obj>
-void* Cloner::allocate(size_t _cSize, const void* _pOriginal) {
-    auto objPtr = std::shared_ptr<void>(std::malloc(_cSize));
-
-    m_cache[_getHandle(_pOriginal)] = objPtr;
-
-    return objPtr.get();
-}
-
 int Cloner::_getHandle(const void* _pObject) {
     std::pair<Handles::iterator, bool> handle = m_handles.insert(
         std::make_pair(_pObject, (int)m_handles.size()));

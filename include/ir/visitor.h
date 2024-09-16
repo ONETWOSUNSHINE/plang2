@@ -36,8 +36,8 @@ class NodeSetterImpl : public NodeSetter {
 public:
     NodeSetterImpl(const std::shared_ptr<_Node> &_pNode) : m_pNode(_pNode) {}
 
-    virtual void set(const NodePtr &_pValue) {
-        (m_pNode->_Method)(_pValue->as<_Member>());
+    void set(const NodePtr &_pValue) override {
+        ((*m_pNode).*(_Method))(_pValue->as<_Member>());
     }
 
 protected:

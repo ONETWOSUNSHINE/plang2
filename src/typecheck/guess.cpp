@@ -45,7 +45,7 @@ bool Guess::_handler(const ir::TypePtr& _pType, const tc::Relations& _lowers, co
     const ir::TypePtr pOther =
         pUpper ? pUpper : pLower;
 
-    return (pOther ? _context().add(std::make_shared<tc::Formula>(tc::Formula::EQUALS, pType, pOther)) : false);
+    return (pOther ? _context()->add(std::make_shared<tc::Formula>(tc::Formula::EQUALS, pType, pOther)) : false);
 }
 
 // Matching the following patterns:
@@ -88,7 +88,7 @@ ir::TypePtr Guess::_matchEqualizableUpperBound(const tc::FreshTypePtr& _pType, c
     auto canBeUpper = [&](ir::TypePtr _pSomeType) {
         return _pSomeType->getKind() == ir::Type::FRESH &&
             (_pSomeType->as<tc::FreshType>()->getFlags() & tc::FreshType::PARAM_OUT) &&
-            _context().pTypes->lowers(_pSomeType).size() == 2;
+            _context()->pTypes->lowers(_pSomeType).size() == 2;
     };
 
     std::list<std::pair<ir::TypePtr, ir::TypePtr>> candidates;
@@ -104,7 +104,7 @@ ir::TypePtr Guess::_matchEqualizableUpperBound(const tc::FreshTypePtr& _pType, c
             pFresh = candidate.first,
             pSup = clone(candidate.second);
 
-        const auto& lowers = _context().pTypes->lowers(pFresh);
+        const auto& lowers = _context()->pTypes->lowers(pFresh);
 
         // pInf <= (pFresh => pType) <= pSup
         ir::TypePtr pInf = lowers.getType(lowers.begin());
@@ -118,7 +118,7 @@ ir::TypePtr Guess::_matchEqualizableUpperBound(const tc::FreshTypePtr& _pType, c
 
         const auto pRelation = std::make_shared<tc::Relation>(tc::Formula(tc::Formula::SUBTYPE, pInf, pSup));
 
-        auto &relations = _context().pTypes->relations();
+        auto &relations = _context()->pTypes->relations();
 
         // Ensure that pInf <= pSup
         if (pRelation->eval() == tc::Formula::TRUE ||

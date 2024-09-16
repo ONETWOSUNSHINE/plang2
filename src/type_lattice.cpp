@@ -380,7 +380,7 @@ void Lattice::update(RelationHandler _handler, void *_pParam) {
         FormulaPtr pFormula = NULL;
 
         for (TypeMap::iterator j = substs.begin(); j != substs.end(); ++j) {
-            if (!it.get()->contains(j->first))
+            if (!it.get()->contains(*j->first))
                 continue;
 
             if (!pFormula)
@@ -434,8 +434,8 @@ void Lattice::update(RelationHandler _handler, void *_pParam) {
                 if (!bDownwards && !bUpwards)
                     continue;
 
-                const bool bRewriteLeft = *pType == *f->getLhs() || f->getLhs()->contains(pType);
-                const bool bRewriteRight = *pType == *f->getRhs() || f->getRhs()->contains(pType);
+                const bool bRewriteLeft = *pType == *f->getLhs() || f->getLhs()->contains(*pType);
+                const bool bRewriteRight = *pType == *f->getRhs() || f->getRhs()->contains(*pType);
                 const int mtl = f->getLhs()->getMonotonicity(*pType);
                 const int mtr = f->getRhs()->getMonotonicity(*pType);
 
@@ -448,7 +448,7 @@ void Lattice::update(RelationHandler _handler, void *_pParam) {
                             continue;
 
                         const bool bStrict = (*k)->isStrict() || f->is(Formula::SUBTYPE_STRICT);
-                        RelationPtr pNew = std::make_shared<Relation>(clone(*f->getLhs()), clone(*f->getRhs()), bStrict);
+                        RelationPtr pNew = std::make_shared<Relation>(clone(f->getLhs()), clone(f->getRhs()), bStrict);
 
                         pNew->rewrite(pType, lowers.getType(k), false);
                         auto a = *k;
@@ -483,7 +483,7 @@ void Lattice::update(RelationHandler _handler, void *_pParam) {
                             continue;
 
                         const bool bStrict = (*k)->isStrict() || f->is(Formula::SUBTYPE_STRICT);
-                        RelationPtr pNew = std::make_shared<Relation>(clone(*f->getLhs()), clone(*f->getRhs()), bStrict);
+                        RelationPtr pNew = std::make_shared<Relation>(clone(f->getLhs()), clone(f->getRhs()), bStrict);
 
                         pNew->rewrite(pType, uppers.getType(k), false);
                         pNew->inferedFrom.insert(RelationPtrPair(f->as<Relation>(), *k));

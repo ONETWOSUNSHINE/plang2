@@ -57,7 +57,7 @@ ir::ExpressionPtr generalize(const ir::ExpressionPtr& _pExpr);
 ir::FormulaPtr setQuantifier(int _quantifier, const ir::ExpressionPtr& _pExpr, const ValuesSet& _bound);
 
 // Case resolving.
-ir::ExpressionPtr resolveCase(const ir::NamedValue& _index, const ir::ExpressionPtr& _pCase);
+ir::ExpressionPtr resolveCase(const ir::NamedValuePtr& _index, const ir::ExpressionPtr& _pCase);
 ir::ExpressionPtr resolveCase(const ir::NamedValues& _indexes, const ir::ExpressionPtr& _pCase);
 ir::ExpressionPtr resolveCase(const ir::NamedValues& _indexes, const ir::Collection<ir::Expression>& _case);
 

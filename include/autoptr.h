@@ -55,12 +55,21 @@ public:
     }
 
     template<class _Obj>
-    void* allocate(size_t _cSize, const void* _pOriginal);
+    void* allocate(size_t _cSize, const void* _pOriginal) {
+        auto objPtr = std::shared_ptr<void>(std::malloc(_cSize), [](auto p)
+        {
+            delete ((_Obj *)p);
+        });
+
+        m_cache[_getHandle(_pOriginal)] = objPtr;
+
+        return objPtr.get();
+    }
 
     friend void* operator new(size_t, Cloner&, const void*);
 
 private:
-    typedef std::map<int, std::shared_ptr<const void>> Cache;
+    typedef std::map<int, std::shared_ptr<void>> Cache;
     typedef std::map<const void*, int> Handles;
     typedef std::multimap<int, const void*> Objects;
 
@@ -75,12 +84,6 @@ private:
 void* operator new(size_t _cSize, Cloner& _cloner, const void* _pOriginal);
 
 template<typename _Obj>
-inline std::shared_ptr<_Obj> clone(const _Obj& _obj) {
-    Cloner cloner;
-    return cloner.get(_obj.template as<_Obj>());
-}
-
-template<typename _Obj>
 inline std::shared_ptr<_Obj> clone(const std::shared_ptr<_Obj>& _obj) {
     Cloner cloner;
     return cloner.get(_obj);
@@ -92,7 +95,7 @@ inline std::shared_ptr<_Obj> clone(const std::shared_ptr<_Obj>& _obj) {
 
 template<class _Comparable>
 struct PtrLess {
-    bool operator()(const std::shared_ptr<_Comparable>& _pLhs, const std::shared_ptr<_Comparable>& _pRhs) const { return _pLhs.get() < _pRhs.get(); }
+    bool operator()(const std::shared_ptr<const _Comparable>& _pLhs, const std::shared_ptr<const _Comparable>& _pRhs) const { return _pLhs.get() < _pRhs.get(); }
 };
 
 #endif /* AUTOPTR_H_ */

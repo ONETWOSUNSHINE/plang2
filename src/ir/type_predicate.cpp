@@ -16,24 +16,24 @@ bool PredicateType::hasFresh() const {
             return true;
 
     for (size_t j = 0; j < m_paramsOut.size(); ++j) {
-        Branch & branch = *m_paramsOut.get(j);
-        for (size_t i = 0; i < branch.size(); ++i)
-            if (branch.get(i)->getType()->hasFresh())
+        const auto branch = m_paramsOut.get(j);
+        for (size_t i = 0; i < branch->size(); ++i)
+            if (branch->get(i)->getType()->hasFresh())
                 return true;
     }
 
     return false;
 }
 
-bool PredicateType::contains(const TypePtr &_pType) const {
+bool PredicateType::contains(const Type &_type) const {
     for (size_t i = 0; i < m_paramsIn.size(); ++i)
-        if (*m_paramsIn.get(i)->getType() == *_pType || m_paramsIn.get(i)->getType()->contains(_pType))
+        if (*m_paramsIn.get(i)->getType() == _type || m_paramsIn.get(i)->getType()->contains(_type))
             return true;
 
     for (size_t j = 0; j < m_paramsOut.size(); ++j) {
-        Branch & branch = *m_paramsOut.get(j);
-        for (size_t i = 0; i < branch.size(); ++i)
-            if (*branch.get(i)->getType() == *_pType || branch.get(i)->getType()->contains(_pType))
+        const auto branch = m_paramsOut.get(j);
+        for (size_t i = 0; i < branch->size(); ++i)
+            if (*branch->get(i)->getType() == _type || branch->get(i)->getType()->contains(_type))
                 return true;
     }
 
@@ -52,11 +52,11 @@ bool PredicateType::less(const Type &_other) const {
         return m_paramsOut.size() < other.m_paramsOut.size();
 
     for (size_t i = 0; i < getOutParams().size(); ++i) {
-        Branch &branch = *getOutParams().get(i);
-        Branch &branchOther = *other.getOutParams().get(i);
+        const auto branch = getOutParams().get(i);
+        const auto branchOther = other.getOutParams().get(i);
 
-        if (branch.size() != branchOther.size())
-            return branch.size() < branchOther.size();
+        if (branch->size() != branchOther->size())
+            return branch->size() < branchOther->size();
     }
 
     for (size_t i = 0; i < getInParams().size(); ++i) {
@@ -71,17 +71,17 @@ bool PredicateType::less(const Type &_other) const {
     }
 
     for (size_t i = 0; i < getOutParams().size(); ++i) {
-        Branch &branch = *getOutParams().get(i);
-        Branch &branchOther = *other.getOutParams().get(i);
+        const auto branch = getOutParams().get(i);
+        const auto branchOther = other.getOutParams().get(i);
 
-        for (size_t j = 0; j < branch.size(); ++j) {
-            const Param &p = *branch.get(j);
-            const Param &q = *branchOther.get(j);
+        for (size_t j = 0; j < branch->size(); ++j) {
+            const auto p = branch->get(j);
+            const auto q = branchOther->get(j);
 
-            if (*p.getType() < *q.getType())
+            if (*p->getType() < *q->getType())
                 return true;
 
-            if (*q.getType() < *p.getType())
+            if (*q->getType() < *p->getType())
                 return false;
         }
     }
@@ -93,7 +93,7 @@ bool PredicateType::rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bR
     bool bResult = false;
 
     for (size_t i = 0; i < m_paramsIn.size(); ++i) {
-        TypePtr p = m_paramsIn.get(i)->getType();
+        auto p = m_paramsIn.get(i)->getType();
         if (tc::rewriteType(p, _pOld, _pNew, _bRewriteFlags)) {
             bResult = true;
             m_paramsIn.get(i)->setType(p);
@@ -101,12 +101,12 @@ bool PredicateType::rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bR
     }
 
     for (size_t j = 0; j < m_paramsOut.size(); ++j) {
-        Branch &branch = *m_paramsOut.get(j);
-        for (size_t i = 0; i < branch.size(); ++i) {
-            TypePtr p = branch.get(i)->getType();
+        const auto branch = m_paramsOut.get(j);
+        for (size_t i = 0; i < branch->size(); ++i) {
+            auto p = branch->get(i)->getType();
             if (tc::rewriteType(p, _pOld, _pNew, _bRewriteFlags)) {
                 bResult = true;
-                branch.get(i)->setType(p);
+                branch->get(i)->setType(p);
             }
         }
     }
@@ -290,9 +290,9 @@ int PredicateType::getMonotonicity(const Type &_var) const {
     }
 
     for (size_t j = 0; j < m_paramsOut.size(); ++j) {
-        Branch &branch = *m_paramsOut.get(j);
-        for (size_t i = 0; i < branch.size(); ++i) {
-            TypePtr pType = branch.get(i)->getType();
+        const auto branch = m_paramsOut.get(j);
+        for (size_t i = 0; i < branch->size(); ++i) {
+            const TypePtr pType = branch->get(i)->getType();
             const int mt = pType->getMonotonicity(_var);
 
             bMonotone |= mt == MT_MONOTONE;
@@ -304,4 +304,11 @@ int PredicateType::getMonotonicity(const Type &_var) const {
     }
 
     return bMonotone ? MT_MONOTONE : (bAntitone ? MT_ANTITONE : MT_CONST);
+}
+
+NodePtr PredicateType::clone(Cloner &_cloner) const {
+    PredicateTypePtr pCopy = NEW_CLONE(this, _cloner, PredicateType(_cloner.get(getPreCondition()), _cloner.get(getPostCondition())));
+    pCopy->getInParams().appendClones(getInParams(), _cloner);
+    pCopy->getOutParams().appendClones(getOutParams(), _cloner);
+    return pCopy;
 }

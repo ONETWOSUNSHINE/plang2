@@ -15,24 +15,25 @@ bool tc::Operation::run(int & _result) {
     return bResult;
 }
 
-tc::Context& tc::Operation::_context() {
-    return *tc::ContextStack::top();
+tc::ContextPtr tc::Operation::_context() {
+    return tc::ContextStack::top();
 }
 
 bool tc::Operation::_runCompound(int & _result) {
     tc::FormulaList formulas;
-    tc::Flags flags = _context().flags();
-    tc::Formulas::iterator iCF = _context()->beginCompound();
+    auto flags = _context()->flags();
+    tc::Formulas::iterator iCF = _context()->formulas()->beginCompound();
     std::list<tc::Formulas::iterator> replaced;
     bool bModified = false;
 
-    if (iCF == _context()->end())
+    if (iCF == _context()->formulas()->end())
         return false;
 
-    m_iLastCF = _context()->end();
+    m_iLastCF = _context()->formulas()->end();
 
-    for (tc::Formulas::iterator i = iCF; i != _context()->end(); ++i) {
-        const auto cf = (*i)->as<tc::CompoundFormula>();
+    for (tc::Formulas::iterator i = iCF; i != _context()->formulas()->end(); ++i) {
+        const auto ii = *i;
+        const auto cf = ii->as<tc::CompoundFormula>();
         bool bFormulaModified = false;
 
         m_iCurrentCF = i;
@@ -49,7 +50,7 @@ bool tc::Operation::_runCompound(int & _result) {
                 if (result == tc::Formula::FALSE) {
                     cf->removePart(j);
                 } else {
-                    pPart->swap(*_context().pFormulas);
+                    pPart->swap(*_context()->formulas());
                     ++j;
                 }
 
@@ -92,11 +93,11 @@ bool tc::Operation::_runCompound(int & _result) {
     }
 
     for (std::list<tc::Formulas::iterator>::iterator i = replaced.begin(); i != replaced.end(); ++i)
-        _context()->erase(*i);
+        _context()->formulas()->erase(*i);
 
     if (bModified) {
-        _context().insert(formulas.begin(), formulas.end());
-        flags.mergeTo(_context().flags());
+        _context()->insert(formulas.begin(), formulas.end());
+        flags.mergeTo(_context()->flags());
     }
 
     return bModified;
@@ -104,7 +105,7 @@ bool tc::Operation::_runCompound(int & _result) {
 
 void tc::Operation::_clear() {
     m_nCurrentCFPart = -1;
-    m_iCurrentCF = m_iLastCF = _context()->end();
+    m_iCurrentCF = m_iLastCF = _context()->formulas()->end();
     m_redundantParts.clear();
 }
 
@@ -114,16 +115,16 @@ public:
             const tc::TypeNode *_pCurrentBounds = NULL, tc::ExtraBoundsCount *_pExtraBounds = NULL) :
         m_types(_types), m_pRoot(_pRoot), m_pCurrentBounds(_pCurrentBounds), m_pExtraBounds(_pExtraBounds) {}
 
-    virtual bool visitType(ir::Type &_type) {
-        if (_type.getKind() == Type::FRESH) {
+    bool visitType(const ir::TypePtr &_type) override {
+        if (_type->getKind() == Type::FRESH) {
             if (m_pRoot) {
-                const int mt = m_pRoot->getMonotonicity(_type);
+                const int mt = m_pRoot->getMonotonicity(*_type);
 
                 assert(m_pCurrentBounds != NULL);
                 assert(m_pExtraBounds != NULL);
 
                 if (mt == Type::MT_NONE)
-                    m_types.insert(_type.as<tc::FreshType>());
+                    m_types.insert(_type->as<tc::FreshType>());
                 else if (mt != Type::MT_CONST) {
                     const tc::Relations *pLowers = &m_pCurrentBounds->lowers;
                     const tc::Relations *pUppers = &m_pCurrentBounds->uppers;
@@ -131,11 +132,11 @@ public:
                     if (mt == Type::MT_ANTITONE)
                         std::swap(pLowers, pUppers);
 
-                    (*m_pExtraBounds)[_type.as<tc::FreshType>()].first += pLowers ? pLowers->size() : 0;
-                    (*m_pExtraBounds)[_type.as<tc::FreshType>()].second += pUppers ? pUppers->size() : 0;
+                    (*m_pExtraBounds)[_type->as<tc::FreshType>()].first += pLowers ? pLowers->size() : 0;
+                    (*m_pExtraBounds)[_type->as<tc::FreshType>()].second += pUppers ? pUppers->size() : 0;
                 }
             } else
-                m_types.insert(_type.as<tc::FreshType>());
+                m_types.insert(_type->as<tc::FreshType>());
         }
 
         return true;
@@ -160,8 +161,8 @@ void tc::Operation::_enumerateFreshTypes(const CompoundFormulaPtr &_cf, FreshTyp
 }
 
 bool tc::OperationOnLattice::_run(int & _result) {
-    _context().pTypes->update();
-    _context().pTypes->reduce();
+    _context()->pTypes->update();
+    _context()->pTypes->reduce();
 
     tc::FreshTypeSet ignored;
     _findRestrictions(ignored);
@@ -172,7 +173,7 @@ bool tc::OperationOnLattice::_run(int & _result) {
         };
 
     const bool bModifed =
-        _context().pTypes->traverse(boundHandler, true, tc::Lattice::Types(ignored.begin(), ignored.end()));
+        _context()->pTypes->traverse(boundHandler, true, tc::Lattice::Types(ignored.begin(), ignored.end()));
 
     if (m_nCurrentCFPart >= 0)
         m_iLastCF = m_iCurrentCF; // Track change of compound formulas.
@@ -185,19 +186,19 @@ void tc::OperationOnLattice::_findRestrictions(FreshTypeSet& _ignored) {
     tc::Formulas::iterator iBegin, iEnd;
 
     // Clear ignored list if processing any normal or the first compound formula in context.
-    if (!bCompound || m_iLastCF == _context().pParent->pFormulas->end())
+    if (!bCompound || m_iLastCF == _context()->pParent->pFormulas->end())
         m_ignored.clear();
 
     if (!bCompound) {
-        iBegin = _context()->beginCompound();
-        iEnd = _context()->end();
+        iBegin = _context()->formulas()->beginCompound();
+        iEnd = _context()->formulas()->end();
     } else {
         iBegin = ::next(m_iCurrentCF);
-        iEnd = _context().pParent->pFormulas->end();
+        iEnd = _context()->pParent->pFormulas->end();
     }
 
     // Compound formula changed: update saved ignored fresh types with ones from the _previous_ compound formula.
-    if (bCompound && m_iCurrentCF != m_iLastCF && m_iLastCF != _context().pParent->pFormulas->end())
+    if (bCompound && m_iCurrentCF != m_iLastCF && m_iLastCF != _context()->pParent->pFormulas->end())
         _enumerateFreshTypes((*m_iLastCF)->as<tc::CompoundFormula>(), m_ignored);
 
     _ignored = m_ignored;
@@ -210,7 +211,7 @@ void tc::OperationOnLattice::_findRestrictions(FreshTypeSet& _ignored) {
         m_ignored = _ignored; // Remember for use inside of compound formulas.
 
     // Mark all non-monotonically contained types as ignored.
-    const tc::TypeNodes &types = _context().pTypes->nodes();
+    const tc::TypeNodes &types = _context()->pTypes->nodes();
     for (tc::TypeNodes::const_iterator i = types.begin(); i != types.end(); ++i)
         if (i->pType->getKind() != Type::FRESH)
             FreshTypeEnumerator(_ignored, i->pType, &*i, &m_extraBounds).traverseNode(i->pType);

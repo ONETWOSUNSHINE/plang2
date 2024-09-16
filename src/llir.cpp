@@ -124,7 +124,7 @@ void Translator::addVariable(const void * _pOrig, const VariablePtr& _pNew, bool
 }
 
 TranslatorPtr Translator::addChild() {
-    m_children.push_back(std::make_shared<Translator>(this));
+    m_children.push_back(std::make_shared<Translator>(shared_from_this()));
     return m_children.back();
 }
 
@@ -418,7 +418,7 @@ Operand Translator::translateEqUnion(const ir::UnionTypePtr &_pType, const Opera
     if (func) {
         funcType = func->getType()->as<FunctionType>();
         const auto funcVar = func;
-        const auto call = std::make_shared<Call>(funcVar, funcType);
+        const auto call = std::make_shared<Call>(Operand(funcVar), funcType);
 
         call->args().push_back(_lhs);
         call->args().push_back(_rhs);
@@ -556,7 +556,7 @@ Operand Translator::translateEqUnion(const ir::UnionTypePtr &_pType, const Opera
     processLL<RecycleVars>(* func);
 
     const auto funcVar = func;
-    const auto call = std::make_shared<Call>(funcVar, funcType);
+    const auto call = std::make_shared<Call>(Operand(funcVar), funcType);
 
     call->args().push_back(_lhs);
     call->args().push_back(_rhs);

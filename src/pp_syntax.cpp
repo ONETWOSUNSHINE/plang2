@@ -17,8 +17,8 @@ public:
     {}
 
 #define DECLARATION(_TYPE)                                   \
-    virtual bool visit##_TYPE(const _TYPE##Ptr & _node) {               \
-        m_paths.insert({_node, na::getModulePath(m_path)}); \
+    bool visit##_TYPE(const _TYPE##Ptr & _node) override {   \
+        m_paths.insert({_node, na::getModulePath(m_path)});  \
         return true;                                         \
     }
 
@@ -216,7 +216,7 @@ bool PrettyPrinterSyntax::traverseMapType(const MapTypePtr &_type) {
 
 bool PrettyPrinterSyntax::traverseSubtype(const SubtypePtr &_type) {
     if (!m_bCompact) {
-        if (RangePtr pRange = _type->asRange()) {
+        if (const auto pRange = _type->asRange()) {
             VISITOR_TRAVERSE_NS(Range, Type, pRange);
             return true;
         }
@@ -263,9 +263,9 @@ bool PrettyPrinterSyntax::visitArrayType(const ArrayTypePtr &_type) {
         else if (c > 0)
             m_os << L", ";
 
-        TypePtr pDim = dims.get(c);
+        auto pDim = dims.get(c);
         if (pDim->getKind() == Type::SUBTYPE) {
-            RangePtr pRange = pDim->as<Subtype>()->asRange();
+            const auto pRange = pDim->as<Subtype>()->asRange();
             if (pRange)
                 pDim = pRange;
         }

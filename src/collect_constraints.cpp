@@ -14,6 +14,7 @@
 #include <ir/builtins.h>
 #include <ir/visitor.h>
 #include <utils.h>
+#include "static_typecheck.h"
 
 using namespace ir;
 
@@ -55,13 +56,13 @@ public:
 
     bool visitTypeExpr(const TypeExprPtr &_expr) override;
 
-    int handlePredicateInParam(const NodePtr &_node);
-    int handlePredicateOutParam(const NodePtr &_node);
-    int handleFormulaBoundVariable(const NodePtr &_node);
-    int handleParameterizedTypeParam(const NodePtr &_node);
-    int handleVarDeclVar(const NodePtr &_node);
-    int handleSubtypeParam(const NodePtr &_node);
-    int handleSwitchCaseValuePost(const NodePtr &_node);
+    int handlePredicateInParam(NodePtr &_node);
+    int handlePredicateOutParam(NodePtr &_node);
+    int handleFormulaBoundVariable(NodePtr &_node);
+    int handleParameterizedTypeParam(NodePtr &_node);
+    int handleVarDeclVar(NodePtr &_node);
+    int handleSubtypeParam(NodePtr &_node);
+    int handleSwitchCaseValuePost(NodePtr &_node);
 
     bool traverseSwitch(const SwitchPtr &_stmt) override;
 
@@ -111,15 +112,17 @@ void Collector::collectParam(const NamedValuePtr &_pParam, int _nFlags) {
         return;
     }
 
-    tc::FreshTypePtr pFresh = createFresh(pType);
+    if(!Options::instance().bStaticTypecheck || pType->getKind() == Type::GENERIC) {
+        tc::FreshTypePtr pFresh = createFresh(pType);
 
-    assert(pType);
+        assert(pType);
 
-    if (pType && pType->getKind() != Type::GENERIC && !getKnownType(pType))
-        m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS, pFresh, pType));
+        if (pType && pType->getKind() != Type::GENERIC && !getKnownType(pType))
+            m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS, pFresh, pType));
 
-    _pParam->setType(pFresh);
-    pFresh->addFlags(_nFlags);
+        _pParam->setType(pFresh);
+        pFresh->addFlags(_nFlags);
+    }
 }
 
 static const TypePtr _getContentsType(const ExpressionPtr _pExpr) {
@@ -151,7 +154,15 @@ static ExpressionPtr _getConditionForIndex(const ExpressionPtr& _pIndex, const V
 
 
 bool Collector::visitRange(const RangePtr &_type) {
-    SubtypePtr pSubtype = _type->asSubtype();
+    if(Options::instance().bStaticTypecheck) {
+        const auto subtype = StaticTypeChecker::checkRange(*_type);//TODO:dyp: fix
+        if (subtype) {
+            callSetter(subtype);
+            return true;
+        }
+    }
+
+    const auto pSubtype = _type->asSubtype();
     collectParam(pSubtype->getParam(), tc::FreshType::PARAM_OUT);
 
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
@@ -164,6 +175,8 @@ bool Collector::visitRange(const RangePtr &_type) {
 }
 
 bool Collector::visitArrayType(const ArrayTypePtr &_type) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkArrayType(*_type))
+        return true;
     // FIXME There is should be finite type.
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
         _type->getDimensionType(), std::make_shared<Type>(Type::INT, Number::GENERIC)));
@@ -171,11 +184,15 @@ bool Collector::visitArrayType(const ArrayTypePtr &_type) {
 }
 
 bool Collector::visitVariableReference(const VariableReferencePtr &_var) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkVariableReference(*_var))
+        return true;
     _var->setType(_var->getTarget()->getType());
     return true;
 }
 
 bool Collector::visitPredicateReference(const PredicateReferencePtr &_ref) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkPredicateReference(*_ref, m_ctx))
+        return true;
     Predicates funcs;
 
     if (! m_ctx.getPredicates(_ref->getName(), funcs))
@@ -202,6 +219,8 @@ bool Collector::visitPredicateReference(const PredicateReferencePtr &_ref) {
 }
 
 bool Collector::visitFormulaCall(const FormulaCallPtr &_call) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkFormulaCall(*_call))
+        return true;
     _call->setType(_call->getTarget()->getResultType());
     for (size_t i = 0; i < _call->getArgs().size(); ++i)
         m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
@@ -210,6 +229,8 @@ bool Collector::visitFormulaCall(const FormulaCallPtr &_call) {
 }
 
 bool Collector::visitFunctionCall(const FunctionCallPtr &_call) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkFunctionCall(*_call, m_ctx))
+        return true;
     PredicateTypePtr pType = std::make_shared<PredicateType>();
 
     _call->setType(createFresh(_call->getType()));
@@ -228,13 +249,18 @@ bool Collector::visitFunctionCall(const FunctionCallPtr &_call) {
 }
 
 bool Collector::visitLambda(const LambdaPtr &_lambda) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkLambda(*_lambda))
+        return true;
     _lambda->setType(_lambda->getPredicate().getType());
     return true;
 }
 
 bool Collector::visitBinder(const BinderPtr &_binder) {
-    const auto pType = std::make_shared<PredicateType>();
-    const auto pPredicateType = std::make_shared<PredicateType>();
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkBinder(*_binder))
+        return true;
+    const auto
+        pType = std::make_shared<PredicateType>(),
+        pPredicateType = std::make_shared<PredicateType>();
 
     _binder->setType(createFresh(_binder->getType()));
     pType->getOutParams().add(std::make_shared<Branch>());
@@ -260,7 +286,9 @@ bool Collector::visitBinder(const BinderPtr &_binder) {
 }
 
 bool Collector::visitCall(const CallPtr &_call) {
-    const auto pType = std::make_shared<PredicateType>();
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkCall(*_call, m_ctx))
+        return true;
+    PredicateTypePtr pType = std::make_shared<PredicateType>();
 
     for (size_t i = 0; i < _call->getArgs().size(); ++i)
         pType->getInParams().add(std::make_shared<Param>(L"", _call->getArgs().get(i)->getType()));
@@ -281,6 +309,8 @@ bool Collector::visitCall(const CallPtr &_call) {
 }
 
 bool Collector::visitLiteral(const LiteralPtr &_lit) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkLiteral(*_lit))
+        return true;
     switch (_lit->getLiteralKind()) {
         case Literal::UNIT:
             _lit->setType(std::make_shared<Type>(Type::UNIT));
@@ -314,6 +344,8 @@ bool Collector::visitLiteral(const LiteralPtr &_lit) {
 }
 
 bool Collector::visitUnary(const UnaryPtr &_unary) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkUnary(*_unary))
+        return true;
     _unary->setType(createFresh(_unary->getType()));
 
     switch (_unary->getOperator()) {
@@ -370,6 +402,8 @@ bool Collector::visitUnary(const UnaryPtr &_unary) {
 }
 
 bool Collector::visitBinary(const BinaryPtr &_binary) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkBinary(*_binary))
+        return true;
     _binary->setType(createFresh(_binary->getType()));
 
     switch (_binary->getOperator()) {
@@ -581,7 +615,7 @@ bool Collector::visitBinary(const BinaryPtr &_binary) {
 
                 // Set operations.
                 tc::Formulas & part4 = p->addPart();
-                const auto pSet = std::make_shared<SetType>(NULL);
+                const auto pSet = std::make_shared<SetType>();
 
                 pSet->setBaseType(createFresh());
 
@@ -610,7 +644,7 @@ bool Collector::visitBinary(const BinaryPtr &_binary) {
 
         case Binary::IN:
             {
-                const auto pSet = std::make_shared<SetType>(NULL);
+                const auto pSet = std::make_shared<SetType>();
 
                 pSet->setBaseType(createFresh());
                 m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS,
@@ -627,6 +661,10 @@ bool Collector::visitBinary(const BinaryPtr &_binary) {
 }
 
 bool Collector::visitTernary(const TernaryPtr &_ternary) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkTernary(*_ternary))
+        return true;
+    m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getThen()->getType(), _ternary->getType()));
+    m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getElse()->getType(), _ternary->getType()));
     _ternary->setType(createFresh(_ternary->getType()));
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getIf()->getType(), std::make_shared<Type>(Type::BOOL)));
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, _ternary->getThen()->getType(), _ternary->getType()));
@@ -635,8 +673,10 @@ bool Collector::visitTernary(const TernaryPtr &_ternary) {
 }
 
 bool Collector::visitFormula(const FormulaPtr &_formula) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkFormula(*_formula))
+        return true;
     _formula->setType(createFresh(_formula->getType()));
-    tc::FreshTypePtr pFresh = std::make_shared<tc::FreshType>(tc::FreshType::PARAM_OUT);
+    const auto pFresh = std::make_shared<tc::FreshType>(tc::FreshType::PARAM_OUT);
 
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS, _formula->getType(), std::make_shared<Type>(Type::BOOL)));
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE, pFresh, std::make_shared<Type>(Type::BOOL)));
@@ -645,6 +685,8 @@ bool Collector::visitFormula(const FormulaPtr &_formula) {
 }
 
 bool Collector::visitArrayPartExpr(const ArrayPartExprPtr &_array) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkArrayPartExpr(*_array))
+        return true;
     _array->setType(std::make_shared<tc::FreshType>(tc::FreshType::PARAM_OUT));
 
     const auto pMapType = std::make_shared<MapType>(std::make_shared<Type>(Type::BOTTOM), _array->getType());
@@ -686,6 +728,8 @@ bool Collector::visitArrayPartExpr(const ArrayPartExprPtr &_array) {
 }
 
 bool Collector::visitRecognizerExpr(const RecognizerExprPtr& _expr) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkRecognizerExpr(*_expr))
+        return true;
     _expr->setType(std::make_shared<Type>(Type::BOOL));
 
     const auto pUnionType = std::make_shared<UnionType>();
@@ -700,6 +744,8 @@ bool Collector::visitRecognizerExpr(const RecognizerExprPtr& _expr) {
 }
 
 bool Collector::visitAccessorExpr(const AccessorExprPtr& _expr) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkAccessorExpr(*_expr))
+        return true;
     _expr->setType(createFresh(_expr->getType()));
 
     const auto pUnionType = std::make_shared<UnionType>();
@@ -712,6 +758,8 @@ bool Collector::visitAccessorExpr(const AccessorExprPtr& _expr) {
 }
 
 bool Collector::visitStructConstructor(const StructConstructorPtr &_cons) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkStructConstructor(*_cons))
+        return true;
     const auto pStruct = std::make_shared<StructType>();
 
     for (size_t i = 0; i < _cons->size(); ++i) {
@@ -735,6 +783,8 @@ bool Collector::visitStructConstructor(const StructConstructorPtr &_cons) {
 }
 
 bool Collector::visitUnionConstructor(const UnionConstructorPtr &_cons) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkUnionConstructor(*_cons))
+        return true;
     const auto pUnion = std::make_shared<UnionType>();
     const auto pCons = std::make_shared<UnionConstructorDeclaration>(_cons->getName());
 
@@ -758,7 +808,9 @@ bool Collector::visitUnionConstructor(const UnionConstructorPtr &_cons) {
 }
 
 bool Collector::visitSetConstructor(const SetConstructorPtr &_cons) {
-    const auto pSet = std::make_shared<SetType>(NULL);
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkSetConstructor(*_cons))
+        return true;
+    const auto pSet = std::make_shared<SetType>();
 
     pSet->setBaseType(std::make_shared<tc::FreshType>(tc::FreshType::PARAM_OUT));
     _cons->setType(pSet);
@@ -771,7 +823,9 @@ bool Collector::visitSetConstructor(const SetConstructorPtr &_cons) {
 }
 
 bool Collector::visitListConstructor(const ListConstructorPtr &_cons) {
-    const auto pList = std::make_shared<ListType>(NULL);
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkListConstructor(*_cons))
+        return true;
+    ListTypePtr pList = std::make_shared<ListType>();
 
     pList->setBaseType(std::make_shared<tc::FreshType>(tc::FreshType::PARAM_OUT));
     _cons->setType(pList);
@@ -784,7 +838,9 @@ bool Collector::visitListConstructor(const ListConstructorPtr &_cons) {
 }
 
 bool Collector::visitArrayConstructor(const ArrayConstructorPtr &_cons) {
-    const auto pArray = std::make_shared<ArrayType>(NULL);
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkArrayConstructor(*_cons))
+        return true;
+    const auto pArray = std::make_shared<ArrayType>();
 
     pArray->setBaseType(std::make_shared<tc::FreshType>(tc::FreshType::PARAM_OUT));
     _cons->setType(pArray);
@@ -884,6 +940,8 @@ bool Collector::visitArrayConstructor(const ArrayConstructorPtr &_cons) {
 }
 
 bool Collector::visitArrayIteration(const ArrayIterationPtr& _iter) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkArrayIteration(*_iter))
+        return true;
     auto pArrayType = std::make_shared<ArrayType>();
     _iter->setType(pArrayType);
 
@@ -959,7 +1017,9 @@ bool Collector::visitArrayIteration(const ArrayIterationPtr& _iter) {
 }
 
 bool Collector::visitMapConstructor(const MapConstructorPtr &_cons) {
-    MapTypePtr pMap = std::make_shared<MapType>(NULL, NULL);
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkMapConstructor(*_cons))
+        return true;
+    const auto pMap = std::make_shared<MapType>();
 
     pMap->setBaseType(createFresh());
     pMap->setIndexType(createFresh());
@@ -980,9 +1040,11 @@ bool Collector::visitMapConstructor(const MapConstructorPtr &_cons) {
 }
 
 bool Collector::visitFieldExpr(const FieldExprPtr &_field) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkFieldExpr(*_field))
+        return true;
     const auto pFresh = createFresh(_field->getType());
-    const auto pStruct = std::make_shared<StructType>();
     const auto pField = std::make_shared<NamedValue>(_field->getFieldName(), pFresh);
+    const auto pStruct = std::make_shared<StructType>();
 
     _field->setType(pFresh);
     pStruct->getNamesSet()->add(pField);
@@ -1000,7 +1062,9 @@ bool Collector::visitFieldExpr(const FieldExprPtr &_field) {
 }
 
 bool Collector::visitCastExpr(const CastExprPtr &_cast) {
-    const auto pToType = _cast->getToType()->getContents();
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkCastExpr(*_cast))
+        return true;
+    const auto pToType = _cast->getToType()->getContents()->as<Type>();
 
     _cast->setType(pToType);
 
@@ -1051,6 +1115,8 @@ bool Collector::visitCastExpr(const CastExprPtr &_cast) {
 }
 
 bool Collector::visitReplacement(const ReplacementPtr &_repl) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkReplacement(*_repl))
+        return true;
     _repl->setType(createFresh(_repl->getType()));
 
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
@@ -1062,6 +1128,8 @@ bool Collector::visitReplacement(const ReplacementPtr &_repl) {
 }
 
 bool Collector::visitAssignment(const AssignmentPtr &_assignment) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkAssignment(*_assignment))
+        return true;
     // x : A = y : B |- B <= A
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
             _assignment->getExpression()->getType(),
@@ -1069,17 +1137,19 @@ bool Collector::visitAssignment(const AssignmentPtr &_assignment) {
     return true;
 }
 
-int Collector::handleVarDeclVar(const NodePtr &_node) {
+int Collector::handleVarDeclVar(NodePtr &_node) {
     collectParam(_node->as<NamedValue>(), tc::FreshType::PARAM_OUT);
     return 0;
 }
 
-int Collector::handleSubtypeParam(const NodePtr &_node) {
+int Collector::handleSubtypeParam(NodePtr &_node) {
     collectParam(_node->as<NamedValue>(), 0);
     return 0;
 }
 
 bool Collector::visitVariableDeclaration(const VariableDeclarationPtr &_var) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkVariableDeclaration(*_var))
+        return true;
     if (_var->getValue())
         // x : A = y : B |- B <= A
         m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::SUBTYPE,
@@ -1089,32 +1159,36 @@ bool Collector::visitVariableDeclaration(const VariableDeclarationPtr &_var) {
 }
 
 bool Collector::visitIf(const IfPtr &_if) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkIf(*_if))
+        return true;
     m_constraints->insert(std::make_shared<tc::Formula>(tc::Formula::EQUALS,
             _if->getArg()->getType(), std::make_shared<Type>(Type::BOOL)));
     return true;
 }
 
-int Collector::handlePredicateInParam(const NodePtr &_node) {
+int Collector::handlePredicateInParam(NodePtr &_node) {
     collectParam(_node->as<NamedValue>(), tc::FreshType::PARAM_IN);
     return 0;
 }
 
-int Collector::handlePredicateOutParam(const NodePtr &_node) {
+int Collector::handlePredicateOutParam(NodePtr &_node) {
     collectParam(_node->as<NamedValue>(), tc::FreshType::PARAM_OUT);
     return 0;
 }
 
-int Collector::handleFormulaBoundVariable(const NodePtr &_node) {
+int Collector::handleFormulaBoundVariable(NodePtr &_node) {
     collectParam(_node->as<NamedValue>(), tc::FreshType::PARAM_IN);
     return 0;
 }
 
-int Collector::handleParameterizedTypeParam(const NodePtr &_node) {
+int Collector::handleParameterizedTypeParam(NodePtr &_node) {
     collectParam(_node->as<NamedValue>(), 0);
     return 0;
 }
 
 bool Collector::visitTypeExpr(const TypeExprPtr &_expr) {
+    if(Options::instance().bStaticTypecheck && StaticTypeChecker::checkTypeExpr(*_expr))
+        return true;
     const auto pType = std::make_shared<TypeType>();
     pType->setDeclaration(std::make_shared<TypeDeclaration>(L"", _expr->getContents()));
     _expr->setType(pType);
@@ -1128,7 +1202,7 @@ bool Collector::traverseSwitch(const SwitchPtr &_stmt) {
     return b;
 }
 
-int Collector::handleSwitchCaseValuePost(const NodePtr &_node) {
+int Collector::handleSwitchCaseValuePost(NodePtr &_node) {
     const auto pExpr = _node->as<Expression>();
 
     if (m_switches.top()->getArg())
@@ -1143,11 +1217,11 @@ int Collector::handleSwitchCaseValuePost(const NodePtr &_node) {
 
 namespace {
 
-struct Resolver : public Visitor {
+class Resolver : public Visitor {
     Collector &m_collector;
     Cloner &m_cloner;
     bool &m_bModified;
-
+public:
     Resolver(Collector &_collector, Cloner &_cloner, bool &_bModified) :
         Visitor(CHILDREN_FIRST), m_collector(_collector), m_cloner(_cloner),
         m_bModified(_bModified)
@@ -1155,7 +1229,7 @@ struct Resolver : public Visitor {
         m_bModified = false;
     }
 
-    bool visitNamedReferenceType(const NamedReferenceTypePtr &_type) {
+    bool visitNamedReferenceType(const NamedReferenceTypePtr &_type) override {
         NodeSetter *pSetter = getNodeSetter();
         if (pSetter == NULL)
             return true;
@@ -1220,8 +1294,6 @@ struct Resolver : public Visitor {
     }
 };
 
-}
-
 static
 void _resolveNamedReferenceTypes(const NodePtr &_node, Collector &_collector) {
     Cloner cloner;
@@ -1230,6 +1302,8 @@ void _resolveNamedReferenceTypes(const NodePtr &_node, Collector &_collector) {
     do
         Resolver(_collector, cloner, bModified).traverseNode(_node);
     while (bModified);
+}
+
 }
 
 tc::ContextPtr tc::collect(const tc::FormulasPtr &_constraints, const NodePtr &_node, ir::Context &_ctx) {

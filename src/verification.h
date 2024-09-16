@@ -26,7 +26,12 @@ public:
     virtual void getFreeValues(na::ValuesSet& _container) const = 0;
 
     template <class _Class>
-    std::shared_ptr<_Class> as() const {
+    std::shared_ptr<_Class> as() {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
+
+    template <class _Class>
+    std::shared_ptr<const _Class> as() const {
         return std::static_pointer_cast<_Class>(shared_from_this());
     }
 };
@@ -170,7 +175,12 @@ public:
     virtual int getKind() const = 0;
 
     template <class _Class>
-    std::shared_ptr<_Class> as() const {
+    std::shared_ptr<_Class> as() {
+        return std::static_pointer_cast<_Class>(shared_from_this());
+    }
+
+    template <class _Class>
+    std::shared_ptr<const _Class> as() const {
         return std::static_pointer_cast<_Class>(shared_from_this());
     }
 };

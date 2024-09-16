@@ -97,6 +97,10 @@ bool Visitor::traverseType(const std::shared_ptr<Type> &_pType) {
         return traverseNamedReferenceType(_pType->as<NamedReferenceType>());
     case Type::REFERENCE:
         return traverseRefType(_pType->as<RefType>());
+    case Type::SEQ:
+        return traverseSeqType(_pType->as<SeqType>());
+    case Type::OPTIONAL:
+        return traverseOptionalType(_pType->as<OptionalType>());
     }
 
     ENTER(Type, _pType);
@@ -104,8 +108,21 @@ bool Visitor::traverseType(const std::shared_ptr<Type> &_pType) {
 }
 
 bool Visitor::traverseTypeType(const std::shared_ptr<TypeType> &_pType) {
-    ENTER(TypeType, _pType);  
+    ENTER(TypeType, _pType);
     TRAVERSE(TypeDeclaration, TypeTypeDecl, _pType->getDeclaration(), _pType, TypeType, setDeclaration);
+    EXIT();
+}
+
+bool Visitor::traverseOptionalType(const std::shared_ptr<OptionalType> &_pType) {
+    traverseDerivedType(_pType);
+    ENTER(OptionalType, _pType);
+    TRAVERSE(Type, OptionalBaseType, _pType->getBaseType(), _pType, DerivedType, setBaseType);
+    EXIT();
+}
+
+bool Visitor::traverseSeqType(const std::shared_ptr<SeqType> &_pType) {
+    ENTER(SeqType, _pType);
+    TRAVERSE(Type, SeqBaseType, _pType->getBaseType(), _pType, DerivedType, setBaseType);
     EXIT();
 }
 
@@ -180,7 +197,7 @@ bool Visitor::traversePredicateType(const std::shared_ptr<PredicateType> &_pType
     TRAVERSE_COL(Param, PredicateTypeInParam, _pType->getInParams());
 
     for (size_t i = 0; i < _pType->getOutParams().size(); ++i) {
-        auto br = std::make_shared<Branch>(_pType->getOutParams().get(i));
+        auto br = std::make_shared<Branch>(*_pType->getOutParams().get(i));
 
         TRAVERSE(Label, PredicateTypeBranchLabel, br->getLabel(), br, Branch, setLabel);
         TRAVERSE(Formula, PredicateTypeBranchPreCondition, br->getPreCondition(), br, Branch, setPreCondition);
@@ -607,7 +624,7 @@ bool Visitor::traverseCall(const std::shared_ptr<Call> &_pStmt) {
 
     for (size_t i = 0; i < _pStmt->getBranches().size(); ++i) {
 
-        auto br = std::make_shared<CallBranch>(_pStmt->getBranches().get(i));
+        auto br = std::make_shared<CallBranch>(*_pStmt->getBranches().get(i));
         TRAVERSE(Statement, PredicateCallBranchHandler, br->getHandler(), br, CallBranch, setHandler);
         TRAVERSE_COL(Expression, PredicateCallBranchResults, *br);
     }
@@ -760,7 +777,7 @@ bool Visitor::traverseArrayPartDefinition(const std::shared_ptr<ArrayPartDefinit
 }
 
 bool Visitor::traverseLabel(const std::shared_ptr<Label> &_pLabel) {
-    ENTER(Label, _pLabel);   
+    ENTER(Label, _pLabel);
     EXIT();
 }
 
@@ -775,9 +792,8 @@ bool Visitor::_traverseAnonymousPredicate(const std::shared_ptr<AnonymousPredica
     TRAVERSE_COL(Param, PredicateInParam, _pDecl->getInParams());
 
     for (size_t i = 0; i < _pDecl->getOutParams().size(); ++i) {
- 
-        auto br = std::make_shared<Branch>(_pDecl->getOutParams().get(i));
- 
+        auto br = std::make_shared<Branch>(*_pDecl->getOutParams().get(i));
+
         TRAVERSE(Label, PredicateBranchLabel, br->getLabel(), br, Branch, setLabel);
         TRAVERSE(Formula, PredicateBranchPreCondition, br->getPreCondition(), br, Branch, setPreCondition);
         TRAVERSE(Formula, PredicateBranchPostCondition, br->getPostCondition(), br, Branch, setPostCondition);
@@ -841,7 +857,7 @@ bool Visitor::traverseProcess(const std::shared_ptr<Process> &_pProcess) {
     TRAVERSE_COL(Param, ProcessInParam, _pProcess->getInParams());
 
     for (size_t i = 0; i < _pProcess->getOutParams().size(); ++i) {
-        auto br = std::make_shared<Branch>(_pProcess->getOutParams().get(i));
+        auto br = std::make_shared<Branch>(*_pProcess->getOutParams().get(i));
 
         TRAVERSE(Label, ProcessBranchLabel, br->getLabel(), br, Branch, setLabel);
         TRAVERSE(Formula, ProcessBranchPreCondition, br->getPreCondition(), br, Branch, setPreCondition);

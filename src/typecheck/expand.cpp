@@ -255,11 +255,11 @@ bool Expand::_expandUnionType(int _kind, const UnionTypePtr& _pLhs, const UnionT
 bool Expand::_run(int & _nResult) {
     tc::FormulaList formulas;
     bool bModified = false;
-    tc::Formulas::iterator iCF = _context()->beginCompound();
+    tc::Formulas::iterator iCF = _context()->formulas()->beginCompound();
 
     _nResult = tc::Formula::UNKNOWN;
 
-    for (tc::Formulas::iterator i = _context()->begin(); i != iCF;) {
+    for (tc::Formulas::iterator i = _context()->formulas()->begin(); i != iCF;) {
         tc::Formula &f = **i;
         TypePtr pLhs = f.getLhs(), pRhs = f.getRhs();
         bool bFormulaModified = false;
@@ -273,7 +273,7 @@ bool Expand::_run(int & _nResult) {
                 bResult = _expandPredicate(f.getKind(), pLhs->as<PredicateType>(), pRhs->as<PredicateType>(), formulas);
             else if (pLhs->getKind() == Type::STRUCT && pRhs->getKind() == Type::STRUCT)
                 bResult = _expandStruct(f.getKind(), pLhs->as<StructType>(), pRhs->as<StructType>(),
-                        formulas, !_context().pParent);
+                        formulas, !_context()->pParent);
             else if (pLhs->getKind() == Type::SET && pRhs->getKind() == Type::SET)
                 bResult = _expandSet(f.getKind(), pLhs->as<SetType>(), pRhs->as<SetType>(), formulas);
             else if (pLhs->getKind() == Type::LIST && pRhs->getKind() == Type::LIST)
@@ -295,7 +295,7 @@ bool Expand::_run(int & _nResult) {
 
             if (bFormulaModified) {
                 bModified = true;
-                _context()->erase(i++);
+                i = _context()->formulas()->erase(i);
             } else
                 ++i;
 

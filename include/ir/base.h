@@ -35,7 +35,8 @@ namespace ir {
 // Used s/std::shared_ptr<([^_][\w:]*)>(?:\s+(>))?/\1Ptr\2/g to replace "std::shared_ptr<Foo>" with "FooPtr".
 #define NODE(_Node, ...)    \
     class _Node;            \
-    using _Node##Ptr = std::shared_ptr<_Node>;
+    using _Node##Ptr = std::shared_ptr<_Node>; \
+    using _Node##ConstPtr = std::shared_ptr<const _Node>;
 #include "nodes.inl"
 NODE(Node)
 NODE(Branch)
@@ -121,13 +122,18 @@ public:
     virtual NodePtr clone(Cloner&) const { return nullptr; }
 
     template <class _Class>
-    std::shared_ptr<_Class> as() const {
+    std::shared_ptr<_Class> as() {
         return std::static_pointer_cast<_Class>(shared_from_this());
     }
 
-protected:  
-    static bool _less(const NodePtr& _pLeft, const NodePtr& _pRight);
-    static bool _equals(const NodePtr& _pLeft, const NodePtr& _pRight);
+    template <class _Class>
+    std::shared_ptr<const _Class> as() const {
+        return std::static_pointer_cast<const _Class>(shared_from_this());
+    }
+
+protected:
+    static bool _less(const NodeConstPtr& _pLeft, const NodeConstPtr& _pRight);
+    static bool _equals(const NodeConstPtr& _pLeft, const NodeConstPtr& _pRight);
 
 private:
     const lexer::Token *m_pLoc = nullptr;
@@ -147,6 +153,7 @@ template<class _Node, class _Base>
 class Collection : public _Base {
 public:
     using _NodePtr = std::shared_ptr<_Node>;
+    using _NodeConstPtr = std::shared_ptr<const _Node>;
     /// Default constructor.
     Collection() {}
 
@@ -178,7 +185,7 @@ public:
 
     /// Get last element of collection.
     /// \return Pointer to element or NULL if collection is empty.
-    _NodePtr back() const {
+    _NodeConstPtr back() const {
         return !m_nodes.empty() ? m_nodes.back() : nullptr;
     }
 
@@ -217,7 +224,7 @@ public:
         m_nodes.reserve(m_nodes.size() + _other.size());
         for (size_t i = 0; i < _other.size(); ++i) {
             const auto& node = _other.get(i);
-            if (node) { 
+            if (node) {
                 add(node->clone(_cloner)->template as<_OtherNode>());
             } else {
                 add(nullptr);
@@ -302,7 +309,7 @@ public:
         return (size_t)-1;
     }
 
-    virtual bool less(const Node& _other) const {
+    bool less(const Node& _other) const override {
         if (!_Base::equals(_other))
             return _Base::less(_other);
         const Collection& other = (const Collection&)_other;
@@ -314,7 +321,7 @@ public:
         return false;
     }
 
-    virtual bool equals(const Node& _other) const {
+    bool equals(const Node& _other) const override {
         if (!_Base::equals(_other))
             return false;
         const Collection& other = (const Collection&)_other;
@@ -334,7 +341,7 @@ public:
         return m_nodes.end();
     }
 
-    virtual NodePtr clone(Cloner& _cloner) const {
+    NodePtr clone(Cloner& _cloner) const override {
         auto pCopy = std::make_shared<Collection>();
         pCopy->appendClones(*this, _cloner);
         return pCopy;
@@ -481,6 +488,7 @@ public:
     virtual bool less(const Node& _other) const;
     virtual bool equals(const Node& _other) const;
     virtual bool less(const Type &_other) const;
+    virtual bool equals(const Type& _other) const;
 
     // Perform deep copy.
     virtual NodePtr clone(Cloner&) const {
@@ -492,7 +500,7 @@ public:
     virtual bool rewriteFlags(int _flags) { return false; }
 
     // Check if _pType is structurally contained (strict relation).
-    virtual bool contains(const TypePtr &_pType) const { return false; }
+    virtual bool contains(const Type &_type) const { return false; }
 
     virtual bool hasParameters() const { return m_kind == INT || m_kind == NAT || m_kind == REAL; }
 

@@ -25,24 +25,24 @@ public:
         return true;
     }
 
-    virtual bool traverseModule(const ModulePtr& _node) {
+    bool traverseModule(const ModulePtr& _node) override {
         return _traverseDeclaration(_node) &&
             Visitor::traverseModule(_node);
     }
 
-    virtual bool traverseVariableDeclaration(const VariableDeclarationPtr& _node) {
+    bool traverseVariableDeclaration(const VariableDeclarationPtr& _node) override {
         return _traverseDeclaration(_node);
     }
 
-    virtual bool traverseTypeDeclaration(const TypeDeclarationPtr& _node) {
+    bool traverseTypeDeclaration(const TypeDeclarationPtr& _node) override {
         return _traverseDeclaration(_node);
     }
 
-    virtual bool traversePredicate(const PredicatePtr& _node) {
+    bool traversePredicate(const PredicatePtr& _node) override {
         return _traverseDeclaration(_node);
     }
 
-    virtual bool traverseFormulaDeclaration(const FormulaDeclarationPtr& _node) {
+    bool traverseFormulaDeclaration(const FormulaDeclarationPtr& _node) override {
         return _traverseDeclaration(_node);
     }
 
@@ -62,7 +62,45 @@ public:
         m_decls(_decls), m_container(_container)
     {}
 
-    virtual bool visitDependence(const NodePtr& _pNode) {
+    bool visitNamedReferenceType(const NamedReferenceTypePtr& _type) override {
+        return visitDependence(_type->getDeclaration());
+    }
+
+    bool visitVariableReference(const VariableReferencePtr& _var) override {
+        if (_var->getTarget()->getKind() != NamedValue::LOCAL &&
+            _var->getTarget()->getKind() != NamedValue::GLOBAL)
+            return true;
+        if (!_var->getTarget())
+            return true;
+        return visitDependence(_var->getTarget()->as<Variable>()->getDeclaration());
+    }
+
+    bool visitFormulaCall(const FormulaCallPtr& _call) override {
+        return visitDependence(_call->getTarget());
+    }
+
+    bool visitCall(const CallPtr& _call) {
+        if (_call->getPredicate() &&
+            _call->getPredicate()->getKind() != Expression::PREDICATE)
+            return true;
+        return visitDependence(_call->getPredicate()->as<PredicateReference>()->getTarget());
+    }
+
+    bool visitFunctionCall(const FunctionCallPtr& _call) override {
+        if (_call->getPredicate() &&
+            _call->getPredicate()->getKind() != Expression::PREDICATE)
+            return true;
+        return visitDependence(_call->getPredicate()->as<PredicateReference>()->getTarget());
+    }
+
+    void run(const NodePtr& _pNode) {
+        m_container.clear();
+        if (_pNode)
+            traverseNode(_pNode);
+    }
+
+private:
+    bool visitDependence(const NodePtr& _pNode) {
         if (!_pNode)
             return true;
 
@@ -92,44 +130,6 @@ public:
         return true;
     }
 
-    virtual bool visitNamedReferenceType(NamedReferenceType& _type) {
-        return visitDependence(_type.getDeclaration());
-    }
-
-    virtual bool visitVariableReference(VariableReference& _var) {
-        if (_var.getTarget()->getKind() != NamedValue::LOCAL &&
-            _var.getTarget()->getKind() != NamedValue::GLOBAL)
-            return true;
-        if (!_var.getTarget())
-            return true;
-        return visitDependence(_var.getTarget()->as<Variable>()->getDeclaration());
-    }
-
-    virtual bool visitFormulaCall(FormulaCall& _call) {
-        return visitDependence(_call.getTarget());
-    }
-
-    virtual bool visitCall(Call& _call) {
-        if (_call.getPredicate() &&
-            _call.getPredicate()->getKind() != Expression::PREDICATE)
-            return true;
-        return visitDependence(_call.getPredicate()->as<PredicateReference>()->getTarget());
-    }
-
-    virtual bool visitFunctionCall(FunctionCall& _call) {
-        if (_call.getPredicate() &&
-            _call.getPredicate()->getKind() != Expression::PREDICATE)
-            return true;
-        return visitDependence(_call.getPredicate()->as<PredicateReference>()->getTarget());
-    }
-
-    void run(const NodePtr& _pNode) {
-        m_container.clear();
-        if (_pNode)
-            traverseNode(_pNode);
-    }
-
-private:
     const Graph& m_decls;
     Graph& m_container;
 };

@@ -16,7 +16,7 @@ class BannedNodesFinder : public Visitor {
 public:
     BannedNodesFinder() : m_bResult(false) {}
 
-    virtual bool traverseFormulaDeclaration(const FormulaDeclarationPtr& _formula) {
+    bool traverseFormulaDeclaration(const FormulaDeclarationPtr& _formula) override {
         // FIXME Mutual recursion is not detected.
         m_formulas.insert(_formula);
 
@@ -27,7 +27,7 @@ public:
         return bResult;
     }
 
-    virtual bool traverseFormulaCall(const FormulaCallPtr& _formulaCall) {
+    bool traverseFormulaCall(const FormulaCallPtr& _formulaCall) override {
         if (!_formulaCall->getTarget())
             return true;
         if (m_formulas.find(_formulaCall->getTarget()) != m_formulas.end()) {
@@ -37,12 +37,12 @@ public:
         return traverseNode(_formulaCall->getTarget());
     }
 
-    virtual bool visitFormula(const FormulaPtr& _formula) {
+    bool visitFormula(const FormulaPtr& _formula) override {
         m_bResult |= (_formula->getQuantifier() == Formula::EXISTENTIAL);
         return !m_bResult;
     }
 
-    virtual bool visitType(const TypePtr& _type) {
+    bool visitType(const TypePtr& _type) override {
         m_bResult |= (_type->getKind() == Type::FRESH);
         return !m_bResult;
     }
@@ -67,7 +67,7 @@ public:
         m_pNode(_node), m_bResult(false)
     {}
 
-    virtual bool traverseFunctionCall(const FunctionCallPtr &_node) {
+    bool traverseFunctionCall(const FunctionCallPtr &_node) override {
         m_bResult = true;
         return false;
     }
@@ -102,22 +102,22 @@ public:
         return true;
     }
 
-    virtual bool visitVariableReference(const VariableReferencePtr &_node) {
+    bool visitVariableReference(const VariableReferencePtr &_node) override {
         addValue(_node->getTarget());
         return false;
     }
 
-    virtual bool visitNamedValue(const NamedValuePtr &_node) {
+    bool visitNamedValue(const NamedValuePtr &_node) override {
         addValue(_node);
         return false;
     }
 
-    virtual bool visitParam(const ParamPtr &_node) {
+    bool visitParam(const ParamPtr &_node) override {
         addValue(_node);
         return false;
     }
 
-    virtual bool traverseArrayIteration(const ArrayIterationPtr &_expr) {
+    bool traverseArrayIteration(const ArrayIterationPtr &_expr) override {
         ValuesSet oldBound = m_bound;
 
         m_bound.insert(_expr->getIterators().begin(), _expr->getIterators().end());
@@ -127,7 +127,7 @@ public:
         return bResult;
     }
 
-    virtual bool traverseFormula(const FormulaPtr &_node) {
+    bool traverseFormula(const FormulaPtr &_node) override {
         VISITOR_ENTER(Formula, _node);
 
         ValuesSet oldBound = m_bound;
@@ -140,7 +140,7 @@ public:
     }
 
     // Cause we don't need to collect values from lambda body.
-    virtual bool traverseLambda(Lambda& _lambda) {
+    bool traverseLambda(const LambdaPtr& _lambda) override {
         return false;
     }
 
@@ -192,8 +192,8 @@ class NodeFinder : public Visitor {
 public:
     NodeFinder() : Visitor(), m_bResult(false) {}
 
-    virtual bool traverseNode(Node& _node) {
-        if (_node == *m_pNode) {
+    bool traverseNode(const NodePtr& _node) override {
+        if (*_node == *m_pNode) {
             m_bResult = true;
             return false;
         }
@@ -205,7 +205,7 @@ public:
             return false;
 
         m_pNode = _pPattern;
-        traverseNode(*_pNode);
+        traverseNode(_pNode);
 
         return m_bResult;
     }
@@ -383,11 +383,11 @@ ir::FormulaPtr setQuantifier(int _quantifier, const ir::ExpressionPtr& _pExpr, c
     return pFormula;
 }
 
-ExpressionPtr resolveCase(const NamedValue& _index, const ExpressionPtr& _pCase) {
+ExpressionPtr resolveCase(const NamedValuePtr& _index, const ExpressionPtr& _pCase) {
     if (_pCase->getKind() != Expression::TYPE ||
         (_pCase->as<TypeExpr>()->getContents()->getKind() != Type::RANGE &&
         _pCase->as<TypeExpr>()->getContents()->getKind() != Type::SUBTYPE))
-        return std::make_shared<Binary>(Binary::EQUALS, std::make_shared<VariableReference>(L"", &_index), _pCase);
+        return std::make_shared<Binary>(Binary::EQUALS, std::make_shared<VariableReference>(L"", _index), _pCase);
 
     const SubtypePtr pContents =
         _pCase->as<TypeExpr>()->getContents()->getKind() != Type::SUBTYPE ?
@@ -398,14 +398,14 @@ ExpressionPtr resolveCase(const NamedValue& _index, const ExpressionPtr& _pCase)
 
     return Expression::substitute(pCase,
         std::make_shared<VariableReference>(L"", pContents->getParam()),
-        std::make_shared<VariableReference>(L"", &_index))->as<Expression>();
+        std::make_shared<VariableReference>(L"", _index))->as<Expression>();
 }
 
 ExpressionPtr resolveCase(const NamedValues& _indexes, const ExpressionPtr& _pCase) {
     if (_indexes.empty())
         return std::make_shared<Literal>(true);
     if (_indexes.size() == 1)
-        return resolveCase(*_indexes.get(0), _pCase);
+        return resolveCase(_indexes.get(0), _pCase);
 
     if (_pCase->getKind() != Expression::CONSTRUCTOR &&
         _pCase->as<Constructor>()->getConstructorKind() != Constructor::STRUCT_FIELDS)
@@ -418,7 +418,7 @@ ExpressionPtr resolveCase(const NamedValues& _indexes, const ExpressionPtr& _pCa
 
     std::list<ExpressionPtr> conds;
     for (size_t i = 0; i < _indexes.size(); ++i)
-        conds.push_back(resolveCase(*_indexes.get(i), tuple->get(i)->getValue()));
+        conds.push_back(resolveCase(_indexes.get(i), tuple->get(i)->getValue()));
 
     return std::make_shared<Binary>(Binary::BOOL_AND, conds);
 }

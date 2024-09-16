@@ -59,9 +59,9 @@ public:
     JumpAlteration(const LabelPtr &_pNewDestionation) :
         m_pNewDestionation(_pNewDestionation) {}
 
-    virtual bool visitJump(Jump &_node) {
-        if (m_labels.find(_node.getDestination()) != m_labels.end())
-            _node.setDestination(m_pNewDestionation);
+    bool visitJump(const JumpPtr &_node) override {
+        if (m_labels.find(_node->getDestination()) != m_labels.end())
+            _node->setDestination(m_pNewDestionation);
         return true;
     }
 
@@ -83,10 +83,10 @@ class VariableRetargeting : public Visitor {
 public:
     VariableRetargeting(const std::map<NamedValuePtr, NamedValuePtr> &_targetMap) : m_targetMap(_targetMap) {}
 
-    virtual bool visitVariableReference(VariableReference &_var) {
-        auto i = m_targetMap.find(_var.getTarget());
+    bool visitVariableReference(const VariableReferencePtr &_var) override {
+        auto i = m_targetMap.find(_var->getTarget());
         if (i != m_targetMap.end())
-            _var.setTarget(i->second);
+            _var->setTarget(i->second);
         return true;
     }
 

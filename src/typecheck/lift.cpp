@@ -20,8 +20,8 @@ bool Lift::_run(int & _nResult) {
     tc::FormulaList formulas;
     tc::Flags flags;
 
-    for (tc::Formulas::iterator iCF = _context()->beginCompound();
-            iCF != _context()->end();)
+    for (tc::Formulas::iterator iCF = _context()->formulas()->beginCompound();
+            iCF != _context()->formulas()->end();)
     {
         auto cf = (*iCF)->as<tc::CompoundFormula>();
         bool bFormulaModified = false;
@@ -74,7 +74,7 @@ bool Lift::_run(int & _nResult) {
             if (cf->size() > 0)
                 formulas.push_back(cf);
 
-            _context()->erase(iCF++);
+            iCF = _context()->formulas()->erase(iCF);
             bModified = true;
         } else
             ++iCF;
@@ -82,7 +82,7 @@ bool Lift::_run(int & _nResult) {
 
     if (bModified) {
         _context()->insert(formulas.begin(), formulas.end());
-        flags.mergeTo(*_context()->pFlags);
+        flags.mergeTo(*_context()->formulas()->pFlags);
     }
 
     return bModified;

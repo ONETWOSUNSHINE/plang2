@@ -16,6 +16,14 @@ bool StructType::empty() const {
     return m_fields[0]->empty() && m_fields[1]->empty() && m_fields[2]->empty();
 }
 
+NodePtr StructType::clone(Cloner &_cloner) const {
+    StructTypePtr pCopy = NEW_CLONE(this, _cloner, StructType());
+    pCopy->getNamesOrd()->appendClones(*getNamesOrd(), _cloner);
+    pCopy->getTypesOrd()->appendClones(*getTypesOrd(), _cloner);
+    pCopy->getNamesSet()->appendClones(*getNamesSet(), _cloner);
+    return pCopy;
+}
+
 NamedValuesPtr StructType::mergeFields() const {
     const auto pMerged = std::make_shared<NamedValues>();
     pMerged->append(*getNamesOrd());
@@ -48,11 +56,11 @@ bool StructType::rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewr
     return bResult;
 }
 
-bool StructType::contains(const TypePtr &_pType) const {
+bool StructType::contains(const Type &_type) const {
     for (size_t j = 0; j < 3; ++j)
         for (size_t i = 0; i < m_fields[j]->size(); ++i) {
             TypePtr pType = m_fields[j]->get(i)->getType();
-            if (*pType == *_pType || pType->contains(_pType))
+            if (*pType == _type || pType->contains(_type))
                 return true;
         }
 

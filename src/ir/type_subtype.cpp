@@ -131,7 +131,7 @@ int Subtype::compare(const Type &_other) const {
         int nResult = nOrder & (ORD_NONE | ORD_UNKNOWN);
 
         if (nOrder & ORD_EQUALS) {
-            if (Expression::matches(getExpression(), other.getExpression()))
+            if (Expression::_matches(getExpression(), other.getExpression()))
                 nResult |= ORD_EQUALS;
             else if (Expression::implies(getExpression(), other.getExpression()))
                 nResult |= ORD_SUB;

@@ -1426,9 +1426,9 @@ RangePtr CollectPreConditions::arrayRangeWithCurrentParams(const ExpressionPtr& 
             getType()->as<NamedReferenceType>()->getDeclaration()->as<TypeDeclaration>()->
             getType()->as<ParameterizedType>()->getActualType()->as<ArrayType>()->getDimensions(dims);
         const auto pType = getNotNamedReferenceType(dims.get(0));
-        RangePtr pRange = NULL;
+        RangePtr pRange;
         if (pType && pType->getKind() == Type::SUBTYPE)
-            pType->as<Subtype>()->asRange();
+            pRange = pType->as<Subtype>()->asRange();
 
         const auto args = _pArray->as<VariableReference>()->getTarget()->as<Param>()->
             getType()->as<NamedReferenceType>()->getArgs();
@@ -1949,7 +1949,7 @@ vf::ConjunctionPtr getPostConditionForStatement(const StatementPtr& _pStmt, cons
 //TODO:dyp: check later
 #ifdef CONDITIONS_FOR_IF
         case Statement::IF: {
-            const IfPtr pIf = _pStmt.as<If>();
+            const IfPtr pIf = _pStmt->as<If>();
 
             ConjunctionPtr
                 pBody = getPostConditionForStatement(pIf->getBody(), _pContext),
