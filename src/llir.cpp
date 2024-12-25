@@ -1749,8 +1749,9 @@ void Translator::translate(const ir::ModulePtr & _module, Module & _dest) {
 }
 
 void translate(Module & _dest, const ir::ModulePtr & _from) {
-    Translator translator(NULL);
-    translator.translate(_from, _dest);
+    //Translator translator(NULL);
+    auto translator = std::make_shared<Translator>(nullptr);
+    translator->translate(_from, _dest);
 }
 
 };
