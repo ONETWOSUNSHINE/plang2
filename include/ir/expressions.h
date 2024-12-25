@@ -655,13 +655,13 @@ private:
 class Ternary : public Expression {
 public:
     /// Default constructor.
-    Ternary() :  m_pIf(NULL), m_pThen(NULL), m_pElse(NULL) {}
+    Ternary() {}
 
     /// Initialize with operands.
     /// \param _pIf If-subexpression.
     /// \param _pThen Then-subexpression.
     /// \param _pElse Else-subexpression.
-    Ternary(const ExpressionPtr &_pIf = NULL, const ExpressionPtr &_pThen = NULL, const ExpressionPtr &_pElse = NULL)
+    Ternary(const ExpressionPtr &_pIf = nullptr, const ExpressionPtr &_pThen = nullptr, const ExpressionPtr &_pElse = nullptr)
         : m_pIf(_pIf), m_pThen(_pThen), m_pElse(_pElse) { }
 
     /// Get expression kind.
@@ -795,12 +795,12 @@ public:
     };
 
     /// Default constructor.
-    Formula() : m_quantifier(NONE), m_pSubformula(NULL) {}
+    Formula() {}
 
     /// Initialize with quantifier and subformula.
     /// \param _quantifier Quantifier (one of #None, #Universal, #Existential).
     /// \param _pSubformula Formula.
-    Formula(int _quantifier, const ExpressionPtr &_pSubformula = NULL) : m_quantifier(_quantifier), m_pSubformula(_pSubformula) {}
+    Formula(int _quantifier, const ExpressionPtr &_pSubformula = nullptr) : m_quantifier(_quantifier), m_pSubformula(_pSubformula) {}
 
     /// Get expression kind.
     /// \return #Formula.
@@ -836,7 +836,7 @@ public:
     virtual NodePtr clone(Cloner &_cloner) const;
 
 private:
-    int m_quantifier;
+    int m_quantifier = NONE;
     ExpressionPtr m_pSubformula;
     NamedValues m_boundVariables;
 };
@@ -867,7 +867,7 @@ public:
 
     /// Default constructor.
     /// \param _pObject Expression of compound type.
-    Component(const ExpressionPtr &_pObject = NULL) : m_pObject(_pObject) {}
+    Component(const ExpressionPtr &_pObject = nullptr) : m_pObject(_pObject) {}
 
     /// Get expression kind.
     /// \return #Formula.
@@ -899,7 +899,7 @@ class ArrayPartExpr : public Component {
 public:
     /// Default constructor.
     /// \param _pObject Expression of compound type.
-    ArrayPartExpr(const ExpressionPtr &_pObject = NULL) : Component(_pObject) {}
+    ArrayPartExpr(const ExpressionPtr &_pObject = nullptr) : Component(_pObject) {}
 
     /// Get component kind.
     /// \return #ArrayPart.
@@ -932,7 +932,7 @@ public:
     /// Default constructor.
     /// \param _strField Field name.
     /// \param _pObject Expression of compound type.
-    FieldExpr(const std::wstring &_strField = L"", const ExpressionPtr &_pObject = NULL) :
+    FieldExpr(const std::wstring &_strField = L"", const ExpressionPtr &_pObject = nullptr) :
         Component(_pObject), m_strField(_strField) {}
 
     /// Get component kind.
@@ -962,7 +962,7 @@ public:
     /// Default constructor.
     /// \param _pIndex Element index.
     /// \param _pObject Expression of compound type.
-    MapElementExpr(const ExpressionPtr &_pIndex = NULL, const ExpressionPtr &_pObject = NULL) :
+    MapElementExpr(const ExpressionPtr &_pIndex = nullptr, const ExpressionPtr &_pObject = nullptr) :
         Component(_pObject), m_pIndex(_pIndex) {}
 
     /// Get component kind.

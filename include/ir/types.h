@@ -82,7 +82,7 @@ public:
 
     bool rewrite(const TypePtr &_pOld, const TypePtr &_pNew, bool _bRewriteFlags = true) override;
     bool less(const Type &_other) const override;
-    bool equals(const Type &_other) const override;
+    bool equals(const Node &_other) const override;
 
     NodePtr clone(Cloner &_cloner) const override;
 
