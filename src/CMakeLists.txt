@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.16)
 
 set(TARGET plang)
 
@@ -23,6 +23,7 @@ set(SOURCES
     backend_c.cpp
     backend_debug.cpp
     backend_pvs.cpp
+    backend_llvm.cpp
     collect_constraints.cpp
     static_typecheck.cpp
     lexer.cpp
